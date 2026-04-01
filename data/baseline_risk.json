@@ -1,0 +1,15 @@
+{
+  "name": "Baseline Event Rate",
+  "parameter": "p0",
+  "description": "Control group event rate for cardiovascular mortality",
+  "experts": [
+    {
+      "expert_id": "E1", "label": "HF specialist",
+      "quantiles": {"lower": 0.02, "q1": 0.05, "median": 0.10, "q3": 0.20, "upper": 0.40, "lower_p": 0.05, "upper_p": 0.95}
+    },
+    {
+      "expert_id": "E2", "label": "Trialist",
+      "quantiles": {"lower": 0.03, "q1": 0.06, "median": 0.12, "q3": 0.18, "upper": 0.35, "lower_p": 0.05, "upper_p": 0.95}
+    }
+  ]
+}

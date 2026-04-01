@@ -1,0 +1,19 @@
+{
+  "name": "Treatment Effect (Log Odds Ratio)",
+  "parameter": "theta",
+  "description": "Plausible effect of a new drug on mortality (log OR scale)",
+  "experts": [
+    {
+      "expert_id": "E1", "label": "Clinical trialist",
+      "quantiles": {"lower": -0.8, "q1": -0.4, "median": -0.2, "q3": 0.0, "upper": 0.3, "lower_p": 0.05, "upper_p": 0.95}
+    },
+    {
+      "expert_id": "E2", "label": "Epidemiologist",
+      "quantiles": {"lower": -0.6, "q1": -0.3, "median": -0.15, "q3": 0.05, "upper": 0.4, "lower_p": 0.05, "upper_p": 0.95}
+    },
+    {
+      "expert_id": "E3", "label": "Cardiologist",
+      "quantiles": {"lower": -1.0, "q1": -0.5, "median": -0.3, "q3": -0.1, "upper": 0.2, "lower_p": 0.05, "upper_p": 0.95}
+    }
+  ]
+}
