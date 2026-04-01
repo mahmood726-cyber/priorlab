@@ -1,0 +1,1761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PriorLab - Interactive Bayesian Prior Elicitation Studio</title>
+<script src="https://cdn.plot.ly/plotly-2.35.0.min.js"></script>
+<style>
+/* ===== CSS Variables ===== */
+:root {
+  --primary: #0f766e;
+  --primary-light: #14b8a6;
+  --primary-dark: #0d5d57;
+  --surface: #ffffff;
+  --surface-alt: #f0fdfa;
+  --text: #1e293b;
+  --text-secondary: #64748b;
+  --border: #e2e8f0;
+  --danger: #ef4444;
+  --warning: #f59e0b;
+  --success: #22c55e;
+  --radius: 8px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.1);
+  --shadow-lg: 0 4px 12px rgba(0,0,0,0.15);
+  --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --mono: 'Cascadia Code', 'Fira Code', monospace;
+}
+body.dark-mode {
+  --surface: #1e293b;
+  --surface-alt: #0f172a;
+  --text: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --border: #334155;
+  --shadow: 0 1px 3px rgba(0,0,0,0.3);
+  --shadow-lg: 0 4px 12px rgba(0,0,0,0.4);
+}
+
+/* ===== Reset ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: var(--font);
+  background: var(--surface-alt);
+  color: var(--text);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* ===== Header ===== */
+.app-header {
+  background: linear-gradient(135deg, var(--primary-dark), var(--primary), var(--primary-light));
+  color: white;
+  padding: 1.5rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: var(--shadow-lg);
+}
+.app-header h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; }
+.app-header .subtitle { font-size: 0.85rem; opacity: 0.9; margin-top: 0.2rem; }
+.header-controls { display: flex; gap: 0.75rem; align-items: center; }
+.header-controls button, .header-controls select {
+  background: rgba(255,255,255,0.2);
+  color: white;
+  border: 1px solid rgba(255,255,255,0.3);
+  padding: 0.4rem 0.8rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background 0.2s;
+}
+.header-controls button:hover, .header-controls select:hover { background: rgba(255,255,255,0.3); }
+.header-controls select option { color: var(--text); background: var(--surface); }
+
+/* ===== Layout ===== */
+.app-container { max-width: 1200px; margin: 0 auto; padding: 1.5rem; }
+
+/* ===== Tabs ===== */
+.tab-bar {
+  display: flex;
+  gap: 0;
+  background: var(--surface);
+  border-radius: var(--radius) var(--radius) 0 0;
+  border: 1px solid var(--border);
+  border-bottom: none;
+  overflow-x: auto;
+}
+.tab-btn {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  border-bottom: 3px solid transparent;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.tab-btn:hover { color: var(--primary); background: var(--surface-alt); }
+.tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); background: var(--surface); font-weight: 600; }
+.tab-content {
+  display: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 var(--radius) var(--radius);
+  padding: 1.5rem;
+}
+.tab-content.active { display: block; }
+
+/* ===== Cards ===== */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+  box-shadow: var(--shadow);
+}
+.card h3 { font-size: 1rem; color: var(--primary); margin-bottom: 0.75rem; }
+
+/* ===== Forms ===== */
+.form-group { margin-bottom: 1rem; }
+.form-group label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 0.3rem;
+}
+.form-group input, .form-group select, .form-group textarea {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 0.9rem;
+  background: var(--surface);
+  color: var(--text);
+  transition: border-color 0.2s;
+}
+.form-group input:focus, .form-group select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(15,118,110,0.1); }
+.form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.75rem; }
+
+/* ===== Buttons ===== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-primary { background: var(--primary); color: white; }
+.btn-primary:hover { background: var(--primary-dark); }
+.btn-secondary { background: var(--surface-alt); color: var(--text); border: 1px solid var(--border); }
+.btn-secondary:hover { background: var(--border); }
+.btn-danger { background: var(--danger); color: white; }
+.btn-danger:hover { background: #dc2626; }
+.btn-sm { padding: 0.3rem 0.6rem; font-size: 0.8rem; }
+
+/* ===== Table ===== */
+.fit-table { width: 100%; border-collapse: collapse; margin-top: 0.75rem; font-size: 0.85rem; }
+.fit-table th, .fit-table td { padding: 0.5rem 0.75rem; text-align: left; border-bottom: 1px solid var(--border); }
+.fit-table th { background: var(--surface-alt); font-weight: 600; color: var(--text-secondary); }
+.fit-table tr.best-fit { background: #f0fdfa; font-weight: 600; }
+body.dark-mode .fit-table tr.best-fit { background: #134e4a; }
+
+/* ===== Roulette Grid ===== */
+.roulette-container { margin: 1rem 0; }
+.roulette-grid {
+  display: grid;
+  gap: 2px;
+  margin-bottom: 0.5rem;
+}
+.roulette-bin {
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.5rem;
+  text-align: center;
+  cursor: pointer;
+  min-height: 60px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+  user-select: none;
+}
+.roulette-bin:hover { background: #ccfbf1; }
+body.dark-mode .roulette-bin:hover { background: #134e4a; }
+.roulette-bin .bin-label { font-size: 0.7rem; color: var(--text-secondary); }
+.roulette-bin .chip-count { font-size: 1.1rem; font-weight: 700; color: var(--primary); }
+.roulette-bin .chip-dots { display: flex; flex-wrap: wrap; gap: 2px; justify-content: center; margin-top: 4px; }
+.chip-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--primary); }
+
+/* ===== Expert Cards ===== */
+.expert-card {
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+}
+.expert-card .expert-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 0.75rem;
+}
+.expert-card .expert-name { font-weight: 600; color: var(--primary); }
+.weight-slider { width: 100%; margin-top: 0.25rem; }
+
+/* ===== Code Block ===== */
+.code-block {
+  background: #1e293b;
+  color: #e2e8f0;
+  padding: 1rem;
+  border-radius: var(--radius);
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  line-height: 1.5;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  position: relative;
+}
+.code-block .copy-btn {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  background: rgba(255,255,255,0.1);
+  color: white;
+  border: 1px solid rgba(255,255,255,0.2);
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.75rem;
+}
+
+/* ===== Status Badge ===== */
+.badge {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.badge-pass { background: #dcfce7; color: #16a34a; }
+.badge-warn { background: #fef3c7; color: #d97706; }
+.badge-reject { background: #fee2e2; color: #dc2626; }
+body.dark-mode .badge-pass { background: #166534; color: #86efac; }
+body.dark-mode .badge-warn { background: #854d0e; color: #fde68a; }
+body.dark-mode .badge-reject { background: #991b1b; color: #fca5a5; }
+
+/* ===== Utility ===== */
+.mt-1 { margin-top: 0.5rem; }
+.mt-2 { margin-top: 1rem; }
+.mt-3 { margin-top: 1.5rem; }
+.mb-1 { margin-bottom: 0.5rem; }
+.flex-between { display: flex; justify-content: space-between; align-items: center; }
+.text-sm { font-size: 0.85rem; }
+.text-muted { color: var(--text-secondary); }
+.gap-1 { gap: 0.5rem; }
+.d-flex { display: flex; }
+
+/* ===== Plotly Dark Mode ===== */
+body.dark-mode .js-plotly-plot .plotly .modebar-btn path { fill: var(--text-secondary); }
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  .app-header { flex-direction: column; text-align: center; gap: 0.75rem; }
+  .form-row { grid-template-columns: 1fr 1fr; }
+  .tab-btn { font-size: 0.8rem; padding: 0.5rem; }
+}
+
+/* ===== Accessibility ===== */
+:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
+</style>
+</head>
+<body>
+
+<!-- ===== Header ===== -->
+<header class="app-header" role="banner">
+  <div>
+    <h1>PriorLab</h1>
+    <div class="subtitle">Interactive Bayesian Prior Elicitation Studio (SHELF Methods)</div>
+  </div>
+  <div class="header-controls">
+    <select id="exampleSelect" aria-label="Load example" onchange="loadExample(this.value)">
+      <option value="">Load Example...</option>
+      <option value="treatment_effect">Treatment Effect (Log OR)</option>
+      <option value="heterogeneity">Heterogeneity (Tau-squared)</option>
+      <option value="baseline_risk">Baseline Event Rate</option>
+    </select>
+    <button onclick="toggleDarkMode()" aria-label="Toggle dark mode" id="darkModeBtn">Dark Mode</button>
+  </div>
+</header>
+
+<!-- ===== Main Content ===== -->
+<main class="app-container" role="main">
+
+  <!-- Tab Bar -->
+  <nav class="tab-bar" role="tablist" aria-label="PriorLab sections">
+    <button class="tab-btn active" role="tab" aria-selected="true" aria-controls="tab-elicitation" id="tabBtn-elicitation" onclick="switchTab('elicitation')">Elicitation</button>
+    <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-fit" id="tabBtn-fit" onclick="switchTab('fit')">Distribution Fit</button>
+    <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-preview" id="tabBtn-preview" onclick="switchTab('preview')">Prior-Posterior Preview</button>
+    <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-multi" id="tabBtn-multi" onclick="switchTab('multi')">Multi-Expert</button>
+    <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-export" id="tabBtn-export" onclick="switchTab('export')">Export</button>
+  </nav>
+
+  <!-- ===== Tab 1: Elicitation ===== -->
+  <div class="tab-content active" id="tab-elicitation" role="tabpanel" aria-labelledby="tabBtn-elicitation">
+    <div class="card">
+      <h3>Parameter Definition</h3>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="paramName">Parameter Name</label>
+          <input type="text" id="paramName" value="theta" onchange="onParamChange()">
+        </div>
+        <div class="form-group">
+          <label for="paramDesc">Description</label>
+          <input type="text" id="paramDesc" value="" placeholder="e.g., Log odds ratio for treatment effect" onchange="onParamChange()">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Elicitation Method</h3>
+      <div class="form-group">
+        <label for="elicitMethod">Method</label>
+        <select id="elicitMethod" onchange="toggleElicitMethod()">
+          <option value="quantile">Quantile Elicitation</option>
+          <option value="roulette">Roulette (SHELF)</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Quantile Input -->
+    <div class="card" id="quantileSection">
+      <h3>Quantile Elicitation</h3>
+      <p class="text-sm text-muted mb-1">Specify 5 quantiles: lower bound (P5), Q1 (P25), median (P50), Q3 (P75), upper bound (P95).</p>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="qLower">Lower (P5)</label>
+          <input type="number" id="qLower" step="any" value="-0.8" oninput="onQuantileChange()">
+        </div>
+        <div class="form-group">
+          <label for="qQ1">Q1 (P25)</label>
+          <input type="number" id="qQ1" step="any" value="-0.4" oninput="onQuantileChange()">
+        </div>
+        <div class="form-group">
+          <label for="qMedian">Median (P50)</label>
+          <input type="number" id="qMedian" step="any" value="-0.2" oninput="onQuantileChange()">
+        </div>
+        <div class="form-group">
+          <label for="qQ3">Q3 (P75)</label>
+          <input type="number" id="qQ3" step="any" value="0.0" oninput="onQuantileChange()">
+        </div>
+        <div class="form-group">
+          <label for="qUpper">Upper (P95)</label>
+          <input type="number" id="qUpper" step="any" value="0.3" oninput="onQuantileChange()">
+        </div>
+      </div>
+      <div id="quantileValidation" class="text-sm mt-1"></div>
+    </div>
+
+    <!-- Roulette Section -->
+    <div class="card" id="rouletteSection" style="display:none;">
+      <h3>Roulette Method (SHELF)</h3>
+      <p class="text-sm text-muted mb-1">Click bins to place chips. Right-click or Shift+click to remove. Configure range and bins below.</p>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="rouletteMin">Range Min</label>
+          <input type="number" id="rouletteMin" step="any" value="-1.0" onchange="rebuildRoulette()">
+        </div>
+        <div class="form-group">
+          <label for="rouletteMax">Range Max</label>
+          <input type="number" id="rouletteMax" step="any" value="1.0" onchange="rebuildRoulette()">
+        </div>
+        <div class="form-group">
+          <label for="rouletteBins">Number of Bins</label>
+          <input type="number" id="rouletteBins" min="3" max="30" value="10" onchange="rebuildRoulette()">
+        </div>
+        <div class="form-group">
+          <label for="rouletteTotalChips">Total Chips</label>
+          <input type="number" id="rouletteTotalChips" min="1" max="100" value="20" readonly>
+        </div>
+      </div>
+      <div class="roulette-container">
+        <div class="roulette-grid" id="rouletteGrid" role="application" aria-label="Roulette chip placement grid"></div>
+      </div>
+      <div class="flex-between mt-1">
+        <span class="text-sm text-muted" id="rouletteChipInfo">Chips placed: 0 / 20</span>
+        <button class="btn btn-secondary btn-sm" onclick="clearRoulette()">Clear All</button>
+      </div>
+    </div>
+
+    <!-- Live Density Preview -->
+    <div class="card">
+      <h3>Live Density Preview</h3>
+      <div id="elicitChart" style="width:100%;height:350px;" role="img" aria-label="Live density preview chart"></div>
+    </div>
+  </div>
+
+  <!-- ===== Tab 2: Distribution Fit ===== -->
+  <div class="tab-content" id="tab-fit" role="tabpanel" aria-labelledby="tabBtn-fit">
+    <div class="card">
+      <h3>Fitted Distributions</h3>
+      <p class="text-sm text-muted mb-1">Six distribution families fitted to your elicited quantiles using method of moments / quantile matching.</p>
+      <button class="btn btn-primary" onclick="runFitting()">Fit All Distributions</button>
+      <table class="fit-table mt-2" id="fitTable">
+        <thead>
+          <tr>
+            <th>Family</th>
+            <th>Parameters</th>
+            <th>KS Distance</th>
+            <th>AIC</th>
+            <th>Best?</th>
+          </tr>
+        </thead>
+        <tbody id="fitTableBody"></tbody>
+      </table>
+    </div>
+    <div class="card">
+      <h3>Distribution Comparison</h3>
+      <div id="fitChart" style="width:100%;height:400px;" role="img" aria-label="Distribution comparison chart"></div>
+    </div>
+  </div>
+
+  <!-- ===== Tab 3: Prior-Posterior Preview ===== -->
+  <div class="tab-content" id="tab-preview" role="tabpanel" aria-labelledby="tabBtn-preview">
+    <div class="card">
+      <h3>Hypothetical Data</h3>
+      <p class="text-sm text-muted mb-1">Enter hypothetical observed data to preview how the prior would update.</p>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="dataTheta">Observed Effect (theta)</label>
+          <input type="number" id="dataTheta" step="any" value="0.5" oninput="updatePosteriorPreview()">
+        </div>
+        <div class="form-group">
+          <label for="dataSE">Standard Error</label>
+          <input type="number" id="dataSE" step="any" value="0.2" min="0.001" oninput="updatePosteriorPreview()">
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Prior-Posterior Overlay</h3>
+      <div id="posteriorChart" style="width:100%;height:400px;" role="img" aria-label="Prior-posterior overlay chart"></div>
+      <div id="posteriorSummary" class="mt-1 text-sm"></div>
+    </div>
+  </div>
+
+  <!-- ===== Tab 4: Multi-Expert ===== -->
+  <div class="tab-content" id="tab-multi" role="tabpanel" aria-labelledby="tabBtn-multi">
+    <div class="card">
+      <h3>Expert Management</h3>
+      <div class="flex-between">
+        <div class="form-group" style="flex:1;margin-right:1rem;">
+          <label for="newExpertName">Expert Name</label>
+          <input type="text" id="newExpertName" value="" placeholder="e.g., Clinical trialist">
+        </div>
+        <button class="btn btn-primary mt-2" onclick="addExpert()">Add Current as Expert</button>
+      </div>
+    </div>
+    <div id="expertList"></div>
+    <div class="card" id="aggregationCard" style="display:none;">
+      <h3>Aggregation Settings</h3>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="aggMethod">Pooling Method</label>
+          <select id="aggMethod" onchange="updateAggregation()">
+            <option value="linear">Linear Pool (arithmetic mean)</option>
+            <option value="log">Logarithmic Pool (geometric mean)</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-primary mt-1" onclick="updateAggregation()">Aggregate Priors</button>
+    </div>
+    <div class="card" id="expertComparisonCard" style="display:none;">
+      <h3>Expert Comparison</h3>
+      <div id="expertChart" style="width:100%;height:400px;" role="img" aria-label="Expert comparison chart"></div>
+    </div>
+  </div>
+
+  <!-- ===== Tab 5: Export ===== -->
+  <div class="tab-content" id="tab-export" role="tabpanel" aria-labelledby="tabBtn-export">
+    <div class="card">
+      <h3>Export Prior Specification</h3>
+      <div class="flex-between mb-1">
+        <span class="text-sm text-muted">Best-fit distribution from your elicitation</span>
+        <span id="certBadge"></span>
+      </div>
+      <div id="exportSummary" class="text-sm mb-1"></div>
+    </div>
+    <div class="card">
+      <h3>JSON Export</h3>
+      <div class="code-block" id="jsonExport"><button class="copy-btn" onclick="copyToClipboard('jsonExport')">Copy</button>Run fitting first...</div>
+    </div>
+    <div class="card">
+      <h3>R Code</h3>
+      <div class="code-block" id="rExport"><button class="copy-btn" onclick="copyToClipboard('rExport')">Copy</button>Run fitting first...</div>
+    </div>
+    <div class="card">
+      <h3>Python Code</h3>
+      <div class="code-block" id="pythonExport"><button class="copy-btn" onclick="copyToClipboard('pythonExport')">Copy</button>Run fitting first...</div>
+    </div>
+    <div class="card">
+      <h3>TruthCert JSON</h3>
+      <div class="code-block" id="truthcertExport"><button class="copy-btn" onclick="copyToClipboard('truthcertExport')">Copy</button>Run fitting first...</div>
+      <div class="mt-1">
+        <button class="btn btn-primary" onclick="downloadJSON()">Download JSON</button>
+        <button class="btn btn-secondary" onclick="downloadTruthCert()">Download TruthCert</button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+/* ===========================================================================
+   PriorLab JavaScript Engine
+   All Python engine logic ported to JavaScript
+   =========================================================================== */
+
+// ===== State =====
+var appState = {
+  quantiles: null,
+  rouletteChips: [],
+  rouletteBinEdges: [],
+  fittedDistributions: [],
+  bestFit: null,
+  experts: [],
+  aggregated: null,
+  darkMode: false
+};
+
+// ===== Built-in Examples =====
+var EXAMPLES = {
+  treatment_effect: {
+    name: "Treatment Effect (Log Odds Ratio)",
+    parameter: "theta",
+    description: "Plausible effect of a new drug on mortality (log OR scale)",
+    experts: [
+      { id: "E1", label: "Clinical trialist", quantiles: { lower: -0.8, q1: -0.4, median: -0.2, q3: 0.0, upper: 0.3 }},
+      { id: "E2", label: "Epidemiologist", quantiles: { lower: -0.6, q1: -0.3, median: -0.15, q3: 0.05, upper: 0.4 }},
+      { id: "E3", label: "Cardiologist", quantiles: { lower: -1.0, q1: -0.5, median: -0.3, q3: -0.1, upper: 0.2 }}
+    ]
+  },
+  heterogeneity: {
+    name: "Between-Study Heterogeneity (Tau-squared)",
+    parameter: "tau2",
+    description: "Expected between-study variance in treatment effect",
+    experts: [
+      { id: "E1", label: "Statistician", quantiles: { lower: 0.001, q1: 0.02, median: 0.08, q3: 0.20, upper: 0.50 }}
+    ]
+  },
+  baseline_risk: {
+    name: "Baseline Event Rate",
+    parameter: "p0",
+    description: "Control group event rate for cardiovascular mortality",
+    experts: [
+      { id: "E1", label: "HF specialist", quantiles: { lower: 0.02, q1: 0.05, median: 0.10, q3: 0.20, upper: 0.40 }},
+      { id: "E2", label: "Trialist", quantiles: { lower: 0.03, q1: 0.06, median: 0.12, q3: 0.18, upper: 0.35 }}
+    ]
+  }
+};
+
+// ===== xoshiro128** PRNG =====
+function xoshiro128ss(seed) {
+  var s = [seed >>> 0, (seed * 2654435761) >>> 0, (seed * 2246822519) >>> 0, (seed * 3266489917) >>> 0];
+  function rotl(x, k) { return ((x << k) | (x >>> (32 - k))) >>> 0; }
+  return function() {
+    var result = (rotl((s[1] * 5) >>> 0, 7) * 9) >>> 0;
+    var t = (s[1] << 9) >>> 0;
+    s[2] ^= s[0]; s[3] ^= s[1]; s[1] ^= s[2]; s[0] ^= s[3];
+    s[2] ^= t; s[3] = rotl(s[3], 11);
+    return result / 4294967296;
+  };
+}
+var prng = xoshiro128ss(42);
+
+// ===== Math Utilities =====
+function linspace(a, b, n) {
+  var arr = new Array(n);
+  var step = (b - a) / (n - 1);
+  for (var i = 0; i < n; i++) arr[i] = a + i * step;
+  return arr;
+}
+
+function trapezoid(y, x) {
+  var sum = 0;
+  for (var i = 1; i < x.length; i++) {
+    sum += 0.5 * (y[i] + y[i - 1]) * (x[i] - x[i - 1]);
+  }
+  return sum;
+}
+
+// Standard normal PDF
+function normalPDF(x, mu, sigma) {
+  var z = (x - mu) / sigma;
+  return Math.exp(-0.5 * z * z) / (sigma * Math.sqrt(2 * Math.PI));
+}
+
+// Standard normal CDF (Abramowitz & Stegun approximation)
+function normalCDF(x) {
+  var a1 = 0.254829592, a2 = -0.284496736, a3 = 1.421413741, a4 = -1.453152027, a5 = 1.061405429;
+  var p = 0.3275911;
+  var sign = x < 0 ? -1 : 1;
+  var t = 1.0 / (1.0 + p * Math.abs(x));
+  var y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-x * x / 2);
+  return 0.5 * (1.0 + sign * y);
+}
+
+// Normal quantile (Newton's method on normalCDF)
+function normalPPF(p) {
+  if (p <= 0) return -Infinity;
+  if (p >= 1) return Infinity;
+  // Rational approximation for initial guess
+  var t = p < 0.5 ? Math.sqrt(-2 * Math.log(p)) : Math.sqrt(-2 * Math.log(1 - p));
+  var c0 = 2.515517, c1 = 0.802853, c2 = 0.010328;
+  var d1 = 1.432788, d2 = 0.189269, d3 = 0.001308;
+  var x = t - (c0 + c1 * t + c2 * t * t) / (1 + d1 * t + d2 * t * t + d3 * t * t * t);
+  if (p < 0.5) x = -x;
+  // Newton refinement
+  for (var i = 0; i < 5; i++) {
+    var err = normalCDF(x) - p;
+    x -= err / normalPDF(x, 0, 1);
+  }
+  return x;
+}
+
+// Gamma function (Lanczos approximation)
+function gammaFn(z) {
+  if (z < 0.5) return Math.PI / (Math.sin(Math.PI * z) * gammaFn(1 - z));
+  z -= 1;
+  var g = 7;
+  var c = [0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313,
+           -176.61502916214059, 12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
+  var x = c[0];
+  for (var i = 1; i < g + 2; i++) x += c[i] / (z + i);
+  var t = z + g + 0.5;
+  return Math.sqrt(2 * Math.PI) * Math.pow(t, z + 0.5) * Math.exp(-t) * x;
+}
+
+function lnGamma(z) { return Math.log(gammaFn(z)); }
+
+function betaFn(a, b) { return gammaFn(a) * gammaFn(b) / gammaFn(a + b); }
+
+// Log-normal PDF
+function lognormalPDF(x, muLog, sigmaLog) {
+  if (x <= 0) return 0;
+  var lnx = Math.log(x);
+  var z = (lnx - muLog) / sigmaLog;
+  return Math.exp(-0.5 * z * z) / (x * sigmaLog * Math.sqrt(2 * Math.PI));
+}
+
+// Log-normal CDF
+function lognormalCDF(x, muLog, sigmaLog) {
+  if (x <= 0) return 0;
+  return normalCDF((Math.log(x) - muLog) / sigmaLog);
+}
+
+// Gamma PDF
+function gammaPDF(x, shape, scale) {
+  if (x <= 0) return 0;
+  return Math.pow(x, shape - 1) * Math.exp(-x / scale) / (Math.pow(scale, shape) * gammaFn(shape));
+}
+
+// Gamma CDF (series expansion)
+function gammaCDF(x, shape, scale) {
+  if (x <= 0) return 0;
+  return regularizedGammaP(shape, x / scale);
+}
+
+function regularizedGammaP(a, x) {
+  if (x < 0) return 0;
+  if (x === 0) return 0;
+  if (x < a + 1) {
+    // Series expansion
+    var sum = 1.0 / a;
+    var term = 1.0 / a;
+    for (var n = 1; n < 200; n++) {
+      term *= x / (a + n);
+      sum += term;
+      if (Math.abs(term) < sum * 1e-12) break;
+    }
+    return sum * Math.exp(-x + a * Math.log(x) - lnGamma(a));
+  } else {
+    // Continued fraction
+    return 1.0 - regularizedGammaQ(a, x);
+  }
+}
+
+function regularizedGammaQ(a, x) {
+  // Continued fraction via Lentz
+  var f = 1e-30, c = 1e-30, d = 1.0 / (x + 1 - a);
+  var h = d;
+  for (var i = 1; i <= 200; i++) {
+    var an = -i * (i - a);
+    var bn = x + 2 * i + 1 - a;
+    d = bn + an * d;
+    if (Math.abs(d) < 1e-30) d = 1e-30;
+    c = bn + an / c;
+    if (Math.abs(c) < 1e-30) c = 1e-30;
+    d = 1.0 / d;
+    var delta = c * d;
+    h *= delta;
+    if (Math.abs(delta - 1) < 1e-12) break;
+  }
+  return Math.exp(-x + a * Math.log(x) - lnGamma(a)) * h;
+}
+
+// Beta PDF
+function betaPDF(x, alpha, beta) {
+  if (x <= 0 || x >= 1) return 0;
+  return Math.pow(x, alpha - 1) * Math.pow(1 - x, beta - 1) / betaFn(alpha, beta);
+}
+
+// Beta CDF (regularized incomplete beta)
+function betaCDF(x, alpha, beta) {
+  if (x <= 0) return 0;
+  if (x >= 1) return 1;
+  return regularizedBetaI(x, alpha, beta);
+}
+
+function regularizedBetaI(x, a, b) {
+  // Lentz continued fraction
+  if (x > (a + 1) / (a + b + 2)) return 1.0 - regularizedBetaI(1 - x, b, a);
+  var lnpre = a * Math.log(x) + b * Math.log(1 - x) - Math.log(a) - lnGamma(a) - lnGamma(b) + lnGamma(a + b);
+  var f = 1.0, c = 1.0, d = 1.0;
+  for (var m = 0; m <= 200; m++) {
+    var m2 = 2 * m;
+    // Even step
+    var num;
+    if (m === 0) {
+      num = 1.0;
+    } else {
+      num = m * (b - m) * x / ((a + m2 - 1) * (a + m2));
+    }
+    d = 1.0 + num * d;
+    if (Math.abs(d) < 1e-30) d = 1e-30;
+    c = 1.0 + num / c;
+    if (Math.abs(c) < 1e-30) c = 1e-30;
+    d = 1.0 / d;
+    f *= c * d;
+    // Odd step
+    num = -((a + m) * (a + b + m) * x) / ((a + m2) * (a + m2 + 1));
+    d = 1.0 + num * d;
+    if (Math.abs(d) < 1e-30) d = 1e-30;
+    c = 1.0 + num / c;
+    if (Math.abs(c) < 1e-30) c = 1e-30;
+    d = 1.0 / d;
+    var delta = c * d;
+    f *= delta;
+    if (Math.abs(delta - 1) < 1e-10) break;
+  }
+  return Math.exp(lnpre) * f;
+}
+
+// Half-Cauchy PDF
+function halfCauchyPDF(x, scale) {
+  if (x < 0) return 0;
+  return 2.0 / (Math.PI * scale * (1 + (x / scale) * (x / scale)));
+}
+
+// Half-Cauchy CDF
+function halfCauchyCDF(x, scale) {
+  if (x < 0) return 0;
+  return (2.0 / Math.PI) * Math.atan(x / scale);
+}
+
+// Student-t PDF
+function studentTPDF(x, df, loc, scale) {
+  var z = (x - loc) / scale;
+  var coeff = gammaFn((df + 1) / 2) / (Math.sqrt(df * Math.PI) * gammaFn(df / 2));
+  return coeff * Math.pow(1 + z * z / df, -(df + 1) / 2) / scale;
+}
+
+// Student-t CDF (using regularized beta)
+function studentTCDF(x, df, loc, scale) {
+  var z = (x - loc) / scale;
+  var t2 = z * z;
+  var p = 0.5 * regularizedBetaI(df / (df + t2), df / 2, 0.5);
+  return z >= 0 ? 1 - p : p;
+}
+
+// ===== Distribution Fitting =====
+
+function getQuantiles() {
+  var method = document.getElementById('elicitMethod').value;
+  if (method === 'roulette') {
+    return rouletteToQuantiles();
+  }
+  var lower = parseFloat(document.getElementById('qLower').value);
+  var q1 = parseFloat(document.getElementById('qQ1').value);
+  var median = parseFloat(document.getElementById('qMedian').value);
+  var q3 = parseFloat(document.getElementById('qQ3').value);
+  var upper = parseFloat(document.getElementById('qUpper').value);
+  if ([lower, q1, median, q3, upper].some(isNaN)) return null;
+  return { lower: lower, q1: q1, median: median, q3: q3, upper: upper, lower_p: 0.05, upper_p: 0.95 };
+}
+
+function validateQuantiles(q) {
+  if (!q) return "Enter valid numbers for all quantiles.";
+  if (!(q.lower < q.q1 && q.q1 < q.median && q.median < q.q3 && q.q3 < q.upper)) {
+    return "Quantiles must be strictly increasing: lower < Q1 < median < Q3 < upper.";
+  }
+  return null;
+}
+
+function quantilePairs(q) {
+  return [
+    [q.lower_p || 0.05, q.lower],
+    [0.25, q.q1],
+    [0.50, q.median],
+    [0.75, q.q3],
+    [q.upper_p || 0.95, q.upper]
+  ];
+}
+
+function ksDistance(cdfFn, q) {
+  var pairs = quantilePairs(q);
+  var maxDist = 0;
+  for (var i = 0; i < pairs.length; i++) {
+    var d = Math.abs(cdfFn(pairs[i][1]) - pairs[i][0]);
+    if (d > maxDist) maxDist = d;
+  }
+  return maxDist;
+}
+
+function makeGrid(q, n) {
+  n = n || 200;
+  var span = q.upper - q.lower;
+  return linspace(q.lower - 0.2 * span, q.upper + 0.2 * span, n);
+}
+
+function fitNormal(q) {
+  var mu = q.median;
+  var sigma = (q.q3 - q.q1) / (2 * 0.6745);
+  sigma = Math.max(sigma, 1e-6);
+  var grid = makeGrid(q);
+  var pdf = grid.map(function(x) { return normalPDF(x, mu, sigma); });
+  var ks = ksDistance(function(x) { return normalCDF((x - mu) / sigma); }, q);
+  var pairs = quantilePairs(q);
+  var loglik = 0;
+  for (var i = 0; i < pairs.length; i++) {
+    var lp = Math.log(normalPDF(pairs[i][1], mu, sigma));
+    if (isFinite(lp)) loglik += lp;
+  }
+  var aic = -2 * loglik + 2 * 2;
+  return {
+    family: "Normal", params: { mu: +mu.toFixed(6), sigma: +sigma.toFixed(6) },
+    ks: +ks.toFixed(6), aic: +aic.toFixed(2), grid: grid, pdf: pdf,
+    paramStr: "mu=" + mu.toFixed(3) + ", sigma=" + sigma.toFixed(3)
+  };
+}
+
+function fitLognormal(q) {
+  if (q.median <= 0) return { family: "Log-Normal", params: {}, ks: 999, aic: 1e6, grid: [], pdf: [], paramStr: "N/A (median <= 0)" };
+  var muLog = Math.log(q.median);
+  var sigmaLog;
+  if (q.q3 > 0 && q.q1 > 0) {
+    sigmaLog = (Math.log(q.q3) - Math.log(q.q1)) / (2 * 0.6745);
+  } else {
+    sigmaLog = 0.5;
+  }
+  sigmaLog = Math.max(sigmaLog, 1e-6);
+  var grid = makeGrid(q);
+  var pdf = grid.map(function(x) { return lognormalPDF(x, muLog, sigmaLog); });
+  var ks = ksDistance(function(x) { return lognormalCDF(x, muLog, sigmaLog); }, q);
+  var pairs = quantilePairs(q);
+  var loglik = 0;
+  for (var i = 0; i < pairs.length; i++) {
+    var lp = Math.log(Math.max(lognormalPDF(pairs[i][1], muLog, sigmaLog), 1e-300));
+    if (isFinite(lp)) loglik += lp;
+  }
+  var aic = -2 * loglik + 2 * 2;
+  return {
+    family: "Log-Normal", params: { mu_log: +muLog.toFixed(6), sigma_log: +sigmaLog.toFixed(6) },
+    ks: +ks.toFixed(6), aic: +aic.toFixed(2), grid: grid, pdf: pdf,
+    paramStr: "mu_log=" + muLog.toFixed(3) + ", sigma_log=" + sigmaLog.toFixed(3)
+  };
+}
+
+function fitGamma(q) {
+  if (q.median <= 0) return { family: "Gamma", params: {}, ks: 999, aic: 1e6, grid: [], pdf: [], paramStr: "N/A (median <= 0)" };
+  var meanEst = q.median;
+  var varEst = Math.pow((q.q3 - q.q1) / 1.349, 2);
+  varEst = Math.max(varEst, 1e-6);
+  var shape = (meanEst * meanEst) / varEst;
+  var scale = varEst / meanEst;
+  shape = Math.max(shape, 0.1);
+  scale = Math.max(scale, 1e-6);
+  var grid = makeGrid(q);
+  var pdf = grid.map(function(x) { return gammaPDF(x, shape, scale); });
+  var ks = ksDistance(function(x) { return gammaCDF(x, shape, scale); }, q);
+  var pairs = quantilePairs(q);
+  var loglik = 0;
+  for (var i = 0; i < pairs.length; i++) {
+    var lp = Math.log(Math.max(gammaPDF(pairs[i][1], shape, scale), 1e-300));
+    if (isFinite(lp)) loglik += lp;
+  }
+  var aic = -2 * loglik + 2 * 2;
+  return {
+    family: "Gamma", params: { shape: +shape.toFixed(6), scale: +scale.toFixed(6) },
+    ks: +ks.toFixed(6), aic: +aic.toFixed(2), grid: grid, pdf: pdf,
+    paramStr: "shape=" + shape.toFixed(3) + ", scale=" + scale.toFixed(3)
+  };
+}
+
+function fitBeta(q) {
+  if (q.lower < 0 || q.upper > 1) return { family: "Beta", params: {}, ks: 999, aic: 1e6, grid: [], pdf: [], paramStr: "N/A (range outside [0,1])" };
+  var meanEst = q.median;
+  var varEst = Math.pow((q.q3 - q.q1) / 1.349, 2);
+  varEst = Math.min(varEst, meanEst * (1 - meanEst) * 0.99);
+  varEst = Math.max(varEst, 1e-6);
+  var common = meanEst * (1 - meanEst) / varEst - 1;
+  common = Math.max(common, 0.1);
+  var alpha = meanEst * common;
+  var betaP = (1 - meanEst) * common;
+  alpha = Math.max(alpha, 0.1);
+  betaP = Math.max(betaP, 0.1);
+  var grid = makeGrid(q);
+  var pdf = grid.map(function(x) { return betaPDF(x, alpha, betaP); });
+  var ks = ksDistance(function(x) { return betaCDF(x, alpha, betaP); }, q);
+  var pairs = quantilePairs(q);
+  var loglik = 0;
+  for (var i = 0; i < pairs.length; i++) {
+    var lp = Math.log(Math.max(betaPDF(pairs[i][1], alpha, betaP), 1e-300));
+    if (isFinite(lp)) loglik += lp;
+  }
+  var aic = -2 * loglik + 2 * 2;
+  return {
+    family: "Beta", params: { alpha: +alpha.toFixed(6), beta: +betaP.toFixed(6) },
+    ks: +ks.toFixed(6), aic: +aic.toFixed(2), grid: grid, pdf: pdf,
+    paramStr: "alpha=" + alpha.toFixed(3) + ", beta=" + betaP.toFixed(3)
+  };
+}
+
+function fitHalfCauchy(q) {
+  if (q.median <= 0) return { family: "Half-Cauchy", params: {}, ks: 999, aic: 1e6, grid: [], pdf: [], paramStr: "N/A (median <= 0)" };
+  var scale = q.median;
+  var grid = makeGrid(q);
+  var pdf = grid.map(function(x) { return halfCauchyPDF(x, scale); });
+  var ks = ksDistance(function(x) { return halfCauchyCDF(x, scale); }, q);
+  var pairs = quantilePairs(q);
+  var loglik = 0;
+  for (var i = 0; i < pairs.length; i++) {
+    var lp = Math.log(Math.max(halfCauchyPDF(pairs[i][1], scale), 1e-300));
+    if (isFinite(lp)) loglik += lp;
+  }
+  var aic = -2 * loglik + 2 * 1;
+  return {
+    family: "Half-Cauchy", params: { scale: +scale.toFixed(6) },
+    ks: +ks.toFixed(6), aic: +aic.toFixed(2), grid: grid, pdf: pdf,
+    paramStr: "scale=" + scale.toFixed(3)
+  };
+}
+
+function fitT(q) {
+  var sigma = (q.q3 - q.q1) / (2 * 0.6745);
+  sigma = Math.max(sigma, 1e-6);
+  var bestKS = Infinity, bestDF = 5, bestScale = sigma;
+  var dfCandidates = [1, 2, 3, 5, 10, 20, 30];
+  for (var di = 0; di < dfCandidates.length; di++) {
+    var df = dfCandidates[di];
+    var sc = df > 2 ? sigma * Math.sqrt(df / (df - 2)) : sigma;
+    var ks = ksDistance(function(x) { return studentTCDF(x, df, q.median, sc); }, q);
+    if (ks < bestKS) { bestKS = ks; bestDF = df; bestScale = sc; }
+  }
+  var grid = makeGrid(q);
+  var finalDF = bestDF, finalScale = bestScale;
+  var pdf = grid.map(function(x) { return studentTPDF(x, finalDF, q.median, finalScale); });
+  var pairs = quantilePairs(q);
+  var loglik = 0;
+  for (var i = 0; i < pairs.length; i++) {
+    var lp = Math.log(Math.max(studentTPDF(pairs[i][1], finalDF, q.median, finalScale), 1e-300));
+    if (isFinite(lp)) loglik += lp;
+  }
+  var aic = -2 * loglik + 2 * 3;
+  return {
+    family: "Student-t", params: { df: finalDF, loc: +q.median.toFixed(6), scale: +finalScale.toFixed(6) },
+    ks: +bestKS.toFixed(6), aic: +aic.toFixed(2), grid: grid, pdf: pdf,
+    paramStr: "df=" + finalDF + ", loc=" + q.median.toFixed(3) + ", scale=" + finalScale.toFixed(3)
+  };
+}
+
+function fitAllDistributions(q) {
+  var fits = [fitNormal(q), fitGamma(q), fitHalfCauchy(q), fitT(q)];
+  var ln = fitLognormal(q);
+  if (ln.ks < 900) fits.push(ln);
+  var bt = fitBeta(q);
+  if (bt.ks < 900) fits.push(bt);
+  fits.sort(function(a, b) { return a.ks - b.ks; });
+  return fits;
+}
+
+function selectBestFit(fits) {
+  var best = fits[0];
+  for (var i = 1; i < fits.length; i++) {
+    if (fits[i].ks < best.ks) best = fits[i];
+  }
+  return best;
+}
+
+// ===== Roulette =====
+
+function rebuildRoulette() {
+  var min = parseFloat(document.getElementById('rouletteMin').value);
+  var max = parseFloat(document.getElementById('rouletteMax').value);
+  var nBins = parseInt(document.getElementById('rouletteBins').value);
+  if (isNaN(min) || isNaN(max) || isNaN(nBins) || min >= max || nBins < 3) return;
+
+  var edges = [];
+  var step = (max - min) / nBins;
+  for (var i = 0; i <= nBins; i++) edges.push(min + i * step);
+
+  appState.rouletteBinEdges = edges;
+  appState.rouletteChips = new Array(nBins).fill(0);
+  renderRoulette();
+}
+
+function renderRoulette() {
+  var grid = document.getElementById('rouletteGrid');
+  grid.innerHTML = '';
+  var nBins = appState.rouletteChips.length;
+  grid.style.gridTemplateColumns = 'repeat(' + nBins + ', 1fr)';
+
+  for (var i = 0; i < nBins; i++) {
+    var bin = document.createElement('div');
+    bin.className = 'roulette-bin';
+    bin.setAttribute('role', 'button');
+    bin.setAttribute('tabindex', '0');
+    bin.setAttribute('aria-label', 'Bin ' + (i + 1) + ': ' + appState.rouletteBinEdges[i].toFixed(2) + ' to ' + appState.rouletteBinEdges[i + 1].toFixed(2) + ', chips: ' + appState.rouletteChips[i]);
+    bin.dataset.idx = i;
+
+    var label = document.createElement('div');
+    label.className = 'bin-label';
+    label.textContent = appState.rouletteBinEdges[i].toFixed(2) + ' - ' + appState.rouletteBinEdges[i + 1].toFixed(2);
+    bin.appendChild(label);
+
+    var count = document.createElement('div');
+    count.className = 'chip-count';
+    count.textContent = appState.rouletteChips[i];
+    bin.appendChild(count);
+
+    var dots = document.createElement('div');
+    dots.className = 'chip-dots';
+    for (var j = 0; j < Math.min(appState.rouletteChips[i], 10); j++) {
+      var dot = document.createElement('div');
+      dot.className = 'chip-dot';
+      dots.appendChild(dot);
+    }
+    bin.appendChild(dots);
+
+    bin.addEventListener('click', onBinClick);
+    bin.addEventListener('contextmenu', onBinRightClick);
+    bin.addEventListener('keydown', onBinKeydown);
+    grid.appendChild(bin);
+  }
+  updateRouletteInfo();
+}
+
+function onBinClick(e) {
+  var idx = parseInt(e.currentTarget.dataset.idx);
+  if (e.shiftKey) {
+    appState.rouletteChips[idx] = Math.max(0, appState.rouletteChips[idx] - 1);
+  } else {
+    appState.rouletteChips[idx]++;
+  }
+  renderRoulette();
+  onQuantileChange();
+}
+
+function onBinRightClick(e) {
+  e.preventDefault();
+  var idx = parseInt(e.currentTarget.dataset.idx);
+  appState.rouletteChips[idx] = Math.max(0, appState.rouletteChips[idx] - 1);
+  renderRoulette();
+  onQuantileChange();
+}
+
+function onBinKeydown(e) {
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault();
+    var idx = parseInt(e.currentTarget.dataset.idx);
+    appState.rouletteChips[idx]++;
+    renderRoulette();
+    onQuantileChange();
+  }
+}
+
+function clearRoulette() {
+  appState.rouletteChips = appState.rouletteChips.map(function() { return 0; });
+  renderRoulette();
+  onQuantileChange();
+}
+
+function updateRouletteInfo() {
+  var total = appState.rouletteChips.reduce(function(a, b) { return a + b; }, 0);
+  document.getElementById('rouletteChipInfo').textContent = 'Chips placed: ' + total;
+  document.getElementById('rouletteTotalChips').value = total;
+}
+
+function rouletteToQuantiles() {
+  var chips = appState.rouletteChips;
+  var edges = appState.rouletteBinEdges;
+  var total = chips.reduce(function(a, b) { return a + b; }, 0);
+  if (total <= 0) return null;
+
+  var probs = chips.map(function(c) { return c / total; });
+  var midpoints = [];
+  for (var i = 0; i < chips.length; i++) {
+    midpoints.push((edges[i] + edges[i + 1]) / 2);
+  }
+
+  var cumProb = [];
+  var running = 0;
+  for (var i2 = 0; i2 < probs.length; i2++) {
+    running += probs[i2];
+    cumProb.push(running);
+  }
+
+  function interpQ(targetP) {
+    for (var j = 0; j < cumProb.length; j++) {
+      if (cumProb[j] >= targetP) {
+        if (j === 0) return midpoints[0];
+        var frac = cumProb[j] !== cumProb[j - 1] ? (targetP - cumProb[j - 1]) / (cumProb[j] - cumProb[j - 1]) : 0;
+        return midpoints[j - 1] + frac * (midpoints[j] - midpoints[j - 1]);
+      }
+    }
+    return midpoints[midpoints.length - 1];
+  }
+
+  return {
+    lower: interpQ(0.05), q1: interpQ(0.25), median: interpQ(0.50),
+    q3: interpQ(0.75), upper: interpQ(0.95), lower_p: 0.05, upper_p: 0.95
+  };
+}
+
+// ===== Aggregation =====
+
+function linearPool(pdfs, grid, weights) {
+  var n = pdfs.length;
+  if (!weights) {
+    weights = new Array(n);
+    for (var w = 0; w < n; w++) weights[w] = 1.0 / n;
+  }
+  var result = new Array(grid.length).fill(0);
+  for (var i = 0; i < n; i++) {
+    for (var j = 0; j < grid.length; j++) {
+      result[j] += weights[i] * pdfs[i][j];
+    }
+  }
+  return result;
+}
+
+function logPool(pdfs, grid, weights) {
+  var n = pdfs.length;
+  if (!weights) {
+    weights = new Array(n);
+    for (var w = 0; w < n; w++) weights[w] = 1.0 / n;
+  }
+  var logResult = new Array(grid.length).fill(0);
+  for (var i = 0; i < n; i++) {
+    for (var j = 0; j < grid.length; j++) {
+      logResult[j] += weights[i] * Math.log(Math.max(pdfs[i][j], 1e-300));
+    }
+  }
+  var result = logResult.map(function(v) { return Math.exp(v); });
+  var integral = trapezoid(result, grid);
+  if (integral > 0) {
+    result = result.map(function(v) { return v / integral; });
+  }
+  return result;
+}
+
+// ===== Prior-Posterior =====
+
+function conjugateNormalUpdate(muPrior, sigmaPrior, thetaData, seData) {
+  var precPrior = 1.0 / (sigmaPrior * sigmaPrior);
+  var precData = 1.0 / (seData * seData);
+  var precPost = precPrior + precData;
+  var sigmaPost = 1.0 / Math.sqrt(precPost);
+  var muPost = (precPrior * muPrior + precData * thetaData) / precPost;
+  var shrinkage = 1.0 - (precPrior / precPost);
+  return {
+    mu_post: muPost,
+    sigma_post: sigmaPost,
+    shrinkage: shrinkage,
+    ci_lo: muPost - 1.96 * sigmaPost,
+    ci_hi: muPost + 1.96 * sigmaPost
+  };
+}
+
+function gridPosterior(grid, priorPDF, thetaData, seData) {
+  var likelihood = grid.map(function(x) { return normalPDF(x, thetaData, seData); });
+  var unnorm = [];
+  for (var i = 0; i < grid.length; i++) {
+    unnorm.push(priorPDF[i] * likelihood[i]);
+  }
+  var integral = trapezoid(unnorm, grid);
+  if (integral > 0) {
+    return unnorm.map(function(v) { return v / integral; });
+  }
+  return unnorm;
+}
+
+// ===== Export Generation =====
+
+function generateRCode(exportObj) {
+  var f = exportObj.family;
+  var p = exportObj.params;
+  var name = exportObj.parameter || "theta";
+  if (f === "Normal") return "# Prior for " + name + "\nprior <- dnorm(x, mean = " + (p.mu || 0) + ", sd = " + (p.sigma || 1) + ")";
+  if (f === "Log-Normal") return "# Prior for " + name + "\nprior <- dlnorm(x, meanlog = " + (p.mu_log || 0) + ", sdlog = " + (p.sigma_log || 1) + ")";
+  if (f === "Gamma") return "# Prior for " + name + "\nprior <- dgamma(x, shape = " + (p.shape || 1) + ", scale = " + (p.scale || 1) + ")";
+  if (f === "Beta") return "# Prior for " + name + "\nprior <- dbeta(x, shape1 = " + (p.alpha || 1) + ", shape2 = " + (p.beta || 1) + ")";
+  if (f === "Half-Cauchy") return "# Prior for " + name + "\nprior <- dcauchy(x, location = 0, scale = " + (p.scale || 1) + ") * 2 * (x >= 0)";
+  if (f === "Student-t") return "# Prior for " + name + "\nprior <- dt((x - " + (p.loc || 0) + ") / " + (p.scale || 1) + ", df = " + (p.df || 3) + ") / " + (p.scale || 1);
+  return "# Prior for " + name + " (" + f + ")\n# Params: " + JSON.stringify(p);
+}
+
+function generatePythonCode(exportObj) {
+  var f = exportObj.family;
+  var p = exportObj.params;
+  var name = exportObj.parameter || "theta";
+  if (f === "Normal") return "from scipy.stats import norm\nprior = norm(loc=" + (p.mu || 0) + ", scale=" + (p.sigma || 1) + ")  # " + name;
+  if (f === "Log-Normal") return "from scipy.stats import lognorm\nimport numpy as np\nprior = lognorm(s=" + (p.sigma_log || 1) + ", scale=np.exp(" + (p.mu_log || 0) + "))  # " + name;
+  if (f === "Gamma") return "from scipy.stats import gamma\nprior = gamma(a=" + (p.shape || 1) + ", scale=" + (p.scale || 1) + ")  # " + name;
+  if (f === "Beta") return "from scipy.stats import beta\nprior = beta(a=" + (p.alpha || 1) + ", b=" + (p.beta || 1) + ")  # " + name;
+  if (f === "Half-Cauchy") return "from scipy.stats import halfcauchy\nprior = halfcauchy(scale=" + (p.scale || 1) + ")  # " + name;
+  if (f === "Student-t") return "from scipy.stats import t\nprior = t(df=" + (p.df || 3) + ", loc=" + (p.loc || 0) + ", scale=" + (p.scale || 1) + ")  # " + name;
+  return "# Prior for " + name + " (" + f + "): " + JSON.stringify(p);
+}
+
+// ===== SHA-256 Hash =====
+function sha256Hex(str) {
+  // Simple djb2-based hash for browser (no crypto dependency requirement)
+  var hash = 5381;
+  for (var i = 0; i < str.length; i++) {
+    hash = ((hash << 5) + hash) + str.charCodeAt(i);
+    hash = hash & hash; // Convert to 32-bit
+  }
+  return Math.abs(hash).toString(16).padStart(8, '0').slice(0, 16);
+}
+
+// ===== UI Event Handlers =====
+
+function switchTab(tabId) {
+  var tabs = document.querySelectorAll('.tab-content');
+  var btns = document.querySelectorAll('.tab-btn');
+  for (var i = 0; i < tabs.length; i++) {
+    tabs[i].classList.remove('active');
+    btns[i].classList.remove('active');
+    btns[i].setAttribute('aria-selected', 'false');
+  }
+  document.getElementById('tab-' + tabId).classList.add('active');
+  document.getElementById('tabBtn-' + tabId).classList.add('active');
+  document.getElementById('tabBtn-' + tabId).setAttribute('aria-selected', 'true');
+
+  // Auto-fit on tab switch
+  if (tabId === 'fit' && appState.fittedDistributions.length === 0) {
+    runFitting();
+  }
+  if (tabId === 'preview') {
+    updatePosteriorPreview();
+  }
+  if (tabId === 'export') {
+    updateExport();
+  }
+}
+
+function toggleElicitMethod() {
+  var method = document.getElementById('elicitMethod').value;
+  document.getElementById('quantileSection').style.display = method === 'quantile' ? 'block' : 'none';
+  document.getElementById('rouletteSection').style.display = method === 'roulette' ? 'block' : 'none';
+  if (method === 'roulette' && appState.rouletteChips.length === 0) {
+    rebuildRoulette();
+  }
+  onQuantileChange();
+}
+
+function toggleDarkMode() {
+  appState.darkMode = !appState.darkMode;
+  document.body.classList.toggle('dark-mode', appState.darkMode);
+  document.getElementById('darkModeBtn').textContent = appState.darkMode ? 'Light Mode' : 'Dark Mode';
+  // Re-render charts with appropriate theme
+  updateElicitChart();
+  if (appState.fittedDistributions.length > 0) plotFitChart();
+}
+
+function onParamChange() {
+  appState.quantiles = getQuantiles();
+}
+
+function onQuantileChange() {
+  var q = getQuantiles();
+  var validation = document.getElementById('quantileValidation');
+  if (validation) {
+    var err = validateQuantiles(q);
+    if (err) {
+      validation.innerHTML = '<span style="color:var(--danger)">' + err + '</span>';
+    } else {
+      validation.innerHTML = '<span style="color:var(--success)">Valid quantiles.</span>';
+    }
+  }
+  appState.quantiles = q;
+  appState.fittedDistributions = [];
+  appState.bestFit = null;
+  updateElicitChart();
+}
+
+function updateElicitChart() {
+  var q = appState.quantiles;
+  if (!q || validateQuantiles(q)) {
+    Plotly.newPlot('elicitChart', [], getPlotLayout('Density Preview'), { responsive: true });
+    return;
+  }
+  // Quick Normal fit for preview
+  var fit = fitNormal(q);
+  var traces = [{
+    x: fit.grid, y: fit.pdf, type: 'scatter', mode: 'lines',
+    name: 'Normal approx', line: { color: '#0f766e', width: 2 }
+  }];
+
+  // Add quantile markers
+  var pairs = quantilePairs(q);
+  var markerX = pairs.map(function(p) { return p[1]; });
+  var markerY = markerX.map(function(x) { return normalPDF(x, fit.params.mu, fit.params.sigma); });
+  traces.push({
+    x: markerX, y: markerY, type: 'scatter', mode: 'markers',
+    name: 'Quantiles', marker: { color: '#ef4444', size: 10, symbol: 'diamond' }
+  });
+
+  Plotly.newPlot('elicitChart', traces, getPlotLayout('Density Preview'), { responsive: true });
+}
+
+function getPlotLayout(title) {
+  var bg = appState.darkMode ? '#1e293b' : '#ffffff';
+  var fg = appState.darkMode ? '#f1f5f9' : '#1e293b';
+  var gridC = appState.darkMode ? '#334155' : '#e2e8f0';
+  return {
+    title: { text: title, font: { color: fg, size: 14 } },
+    paper_bgcolor: bg, plot_bgcolor: bg,
+    xaxis: { title: 'Value', color: fg, gridcolor: gridC },
+    yaxis: { title: 'Density', color: fg, gridcolor: gridC },
+    font: { family: 'Segoe UI, system-ui, sans-serif', color: fg },
+    margin: { t: 40, r: 20, b: 50, l: 60 },
+    legend: { font: { color: fg } },
+    showlegend: true
+  };
+}
+
+function runFitting() {
+  var q = getQuantiles();
+  if (!q || validateQuantiles(q)) {
+    alert('Please enter valid quantiles first.');
+    return;
+  }
+  var fits = fitAllDistributions(q);
+  appState.fittedDistributions = fits;
+  appState.bestFit = selectBestFit(fits);
+  renderFitTable(fits);
+  plotFitChart();
+}
+
+function renderFitTable(fits) {
+  var tbody = document.getElementById('fitTableBody');
+  tbody.innerHTML = '';
+  for (var i = 0; i < fits.length; i++) {
+    var f = fits[i];
+    var tr = document.createElement('tr');
+    if (f === appState.bestFit) tr.className = 'best-fit';
+    tr.innerHTML = '<td>' + f.family + '</td><td>' + f.paramStr + '</td><td>' + f.ks.toFixed(4) + '</td><td>' + (f.aic < 1e5 ? f.aic.toFixed(1) : 'N/A') + '</td><td>' + (f === appState.bestFit ? 'Best' : '') + '</td>';
+    tbody.appendChild(tr);
+  }
+}
+
+function plotFitChart() {
+  var fits = appState.fittedDistributions;
+  var colors = ['#0f766e', '#ef4444', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899'];
+  var traces = [];
+  for (var i = 0; i < fits.length; i++) {
+    if (fits[i].grid.length === 0) continue;
+    traces.push({
+      x: fits[i].grid, y: fits[i].pdf, type: 'scatter', mode: 'lines',
+      name: fits[i].family + (fits[i] === appState.bestFit ? ' (Best)' : ''),
+      line: { color: colors[i % colors.length], width: fits[i] === appState.bestFit ? 3 : 1.5,
+              dash: fits[i] === appState.bestFit ? 'solid' : 'dot' }
+    });
+  }
+
+  // Add quantile markers
+  var q = getQuantiles();
+  if (q) {
+    var pairs = quantilePairs(q);
+    traces.push({
+      x: pairs.map(function(p) { return p[1]; }),
+      y: new Array(pairs.length).fill(0),
+      type: 'scatter', mode: 'markers+text',
+      name: 'Elicited Quantiles',
+      marker: { color: '#1e293b', size: 8, symbol: 'triangle-up' },
+      text: pairs.map(function(p) { return 'P' + (p[0] * 100).toFixed(0); }),
+      textposition: 'top center',
+      textfont: { size: 10 }
+    });
+  }
+
+  Plotly.newPlot('fitChart', traces, getPlotLayout('Distribution Comparison'), { responsive: true });
+}
+
+function updatePosteriorPreview() {
+  var q = getQuantiles();
+  if (!q || validateQuantiles(q)) return;
+
+  if (appState.fittedDistributions.length === 0) {
+    var fits = fitAllDistributions(q);
+    appState.fittedDistributions = fits;
+    appState.bestFit = selectBestFit(fits);
+  }
+
+  var best = appState.bestFit;
+  if (!best || best.grid.length === 0) return;
+
+  var thetaData = parseFloat(document.getElementById('dataTheta').value);
+  var seData = parseFloat(document.getElementById('dataSE').value);
+  if (isNaN(thetaData) || isNaN(seData) || seData <= 0) return;
+
+  var grid = best.grid;
+  var priorPDF = best.pdf;
+
+  // Grid posterior
+  var postPDF = gridPosterior(grid, priorPDF, thetaData, seData);
+
+  // Likelihood
+  var likPDF = grid.map(function(x) { return normalPDF(x, thetaData, seData); });
+
+  // Conjugate update (for summary)
+  var conjResult = null;
+  if (best.family === 'Normal') {
+    conjResult = conjugateNormalUpdate(best.params.mu, best.params.sigma, thetaData, seData);
+  }
+
+  var traces = [
+    { x: grid, y: priorPDF, type: 'scatter', mode: 'lines', name: 'Prior', line: { color: '#3b82f6', width: 2 } },
+    { x: grid, y: likPDF, type: 'scatter', mode: 'lines', name: 'Likelihood', line: { color: '#f59e0b', width: 2, dash: 'dash' } },
+    { x: grid, y: postPDF, type: 'scatter', mode: 'lines', name: 'Posterior', line: { color: '#ef4444', width: 3 } }
+  ];
+
+  Plotly.newPlot('posteriorChart', traces, getPlotLayout('Prior-Posterior Overlay'), { responsive: true });
+
+  // Summary
+  var summary = document.getElementById('posteriorSummary');
+  if (conjResult) {
+    summary.innerHTML = '<strong>Conjugate Normal Update:</strong> Posterior mean = ' + conjResult.mu_post.toFixed(4) +
+      ', Posterior SD = ' + conjResult.sigma_post.toFixed(4) +
+      ', 95% CI: [' + conjResult.ci_lo.toFixed(4) + ', ' + conjResult.ci_hi.toFixed(4) + ']' +
+      ', Shrinkage = ' + (conjResult.shrinkage * 100).toFixed(1) + '% toward data';
+  } else {
+    summary.innerHTML = '<strong>Grid posterior</strong> computed numerically (non-conjugate prior: ' + best.family + ').';
+  }
+}
+
+// ===== Multi-Expert =====
+
+function addExpert() {
+  var q = getQuantiles();
+  if (!q || validateQuantiles(q)) {
+    alert('Please enter valid quantiles first.');
+    return;
+  }
+  var name = document.getElementById('newExpertName').value.trim() || ('Expert ' + (appState.experts.length + 1));
+  var fits = fitAllDistributions(q);
+  var best = selectBestFit(fits);
+  appState.experts.push({
+    id: 'E' + (appState.experts.length + 1),
+    label: name,
+    quantiles: JSON.parse(JSON.stringify(q)),
+    bestFit: best,
+    allFits: fits,
+    weight: 1.0
+  });
+  document.getElementById('newExpertName').value = '';
+  renderExperts();
+}
+
+function removeExpert(idx) {
+  appState.experts.splice(idx, 1);
+  renderExperts();
+}
+
+function renderExperts() {
+  var container = document.getElementById('expertList');
+  container.innerHTML = '';
+  for (var i = 0; i < appState.experts.length; i++) {
+    var e = appState.experts[i];
+    var card = document.createElement('div');
+    card.className = 'expert-card';
+    card.innerHTML = '<div class="expert-header"><span class="expert-name">' + e.label + ' (' + e.id + ')</span>' +
+      '<button class="btn btn-danger btn-sm" onclick="removeExpert(' + i + ')">Remove</button></div>' +
+      '<div class="text-sm text-muted">Best fit: ' + e.bestFit.family + ' (' + e.bestFit.paramStr + '), KS=' + e.bestFit.ks.toFixed(4) + '</div>' +
+      '<div class="text-sm mt-1"><label>Weight: <input type="range" class="weight-slider" min="0" max="2" step="0.1" value="' + e.weight + '" oninput="updateExpertWeight(' + i + ', this.value)"> <span id="weightVal' + i + '">' + e.weight.toFixed(1) + '</span></label></div>';
+    container.appendChild(card);
+  }
+
+  var showAgg = appState.experts.length >= 2;
+  document.getElementById('aggregationCard').style.display = showAgg ? 'block' : 'none';
+  document.getElementById('expertComparisonCard').style.display = appState.experts.length > 0 ? 'block' : 'none';
+
+  if (appState.experts.length > 0) plotExpertComparison();
+  if (showAgg) updateAggregation();
+}
+
+function updateExpertWeight(idx, val) {
+  appState.experts[idx].weight = parseFloat(val);
+  document.getElementById('weightVal' + idx).textContent = parseFloat(val).toFixed(1);
+}
+
+function updateAggregation() {
+  if (appState.experts.length < 2) return;
+
+  var method = document.getElementById('aggMethod').value;
+  var totalWeight = appState.experts.reduce(function(s, e) { return s + e.weight; }, 0);
+  var weights = appState.experts.map(function(e) { return e.weight / totalWeight; });
+
+  // Use common grid
+  var grid = appState.experts[0].bestFit.grid;
+  var pdfs = appState.experts.map(function(e) { return e.bestFit.pdf; });
+
+  var aggPDF;
+  if (method === 'log') {
+    aggPDF = logPool(pdfs, grid, weights);
+  } else {
+    aggPDF = linearPool(pdfs, grid, weights);
+  }
+
+  appState.aggregated = { method: method, weights: weights, grid: grid, pdf: aggPDF };
+  plotExpertComparison();
+}
+
+function plotExpertComparison() {
+  var colors = ['#3b82f6', '#ef4444', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4'];
+  var traces = [];
+  for (var i = 0; i < appState.experts.length; i++) {
+    var e = appState.experts[i];
+    if (e.bestFit.grid.length === 0) continue;
+    traces.push({
+      x: e.bestFit.grid, y: e.bestFit.pdf, type: 'scatter', mode: 'lines',
+      name: e.label, line: { color: colors[i % colors.length], width: 1.5 }
+    });
+  }
+
+  if (appState.aggregated) {
+    traces.push({
+      x: appState.aggregated.grid, y: appState.aggregated.pdf,
+      type: 'scatter', mode: 'lines',
+      name: 'Aggregated (' + (appState.aggregated.method === 'log' ? 'Log' : 'Linear') + ')',
+      line: { color: '#0f766e', width: 3 }
+    });
+  }
+
+  Plotly.newPlot('expertChart', traces, getPlotLayout('Expert Comparison'), { responsive: true });
+}
+
+// ===== Export =====
+
+function updateExport() {
+  if (appState.fittedDistributions.length === 0) {
+    var q = getQuantiles();
+    if (q && !validateQuantiles(q)) runFitting();
+  }
+
+  var best = appState.bestFit;
+  if (!best) return;
+
+  var paramName = document.getElementById('paramName').value || 'theta';
+  var paramDesc = document.getElementById('paramDesc').value || '';
+
+  var exportObj = {
+    parameter: paramName,
+    description: paramDesc,
+    family: best.family,
+    params: best.params,
+    ks_distance: best.ks,
+    n_experts: appState.experts.length || 1,
+    aggregation: appState.aggregated ? (appState.aggregated.method === 'log' ? 'log_pool' : 'linear_pool') : 'single_expert',
+    provenance: {
+      tool: 'PriorLab v0.1.0 (Browser)',
+      hash: sha256Hex(JSON.stringify(best.params) + paramName)
+    }
+  };
+
+  // Certification
+  var cert = 'PASS';
+  if (!best || best.ks > 0.2) cert = 'WARN';
+  if (!best || best.ks >= 999) cert = 'REJECT';
+
+  var certBadge = document.getElementById('certBadge');
+  certBadge.innerHTML = '<span class="badge badge-' + cert.toLowerCase() + '">' + cert + '</span>';
+
+  document.getElementById('exportSummary').innerHTML =
+    '<strong>' + best.family + '</strong> | ' + best.paramStr + ' | KS=' + best.ks.toFixed(4);
+
+  // JSON
+  var jsonBlock = document.getElementById('jsonExport');
+  jsonBlock.textContent = JSON.stringify(exportObj, null, 2);
+  var copyBtn1 = document.createElement('button');
+  copyBtn1.className = 'copy-btn';
+  copyBtn1.textContent = 'Copy';
+  copyBtn1.onclick = function() { copyToClipboard('jsonExport'); };
+  jsonBlock.appendChild(copyBtn1);
+
+  // R code
+  var rBlock = document.getElementById('rExport');
+  rBlock.textContent = generateRCode(exportObj);
+  var copyBtn2 = document.createElement('button');
+  copyBtn2.className = 'copy-btn';
+  copyBtn2.textContent = 'Copy';
+  copyBtn2.onclick = function() { copyToClipboard('rExport'); };
+  rBlock.appendChild(copyBtn2);
+
+  // Python code
+  var pyBlock = document.getElementById('pythonExport');
+  pyBlock.textContent = generatePythonCode(exportObj);
+  var copyBtn3 = document.createElement('button');
+  copyBtn3.className = 'copy-btn';
+  copyBtn3.textContent = 'Copy';
+  copyBtn3.onclick = function() { copyToClipboard('pythonExport'); };
+  pyBlock.appendChild(copyBtn3);
+
+  // TruthCert
+  var truthcert = {
+    schema: 'TruthCert/1.0',
+    tool: 'PriorLab v0.1.0',
+    timestamp: new Date().toISOString(),
+    parameter: paramName,
+    description: paramDesc,
+    certification: cert,
+    input_hash: exportObj.provenance.hash,
+    prior: {
+      family: best.family,
+      params: best.params,
+      ks_distance: best.ks
+    },
+    n_experts: exportObj.n_experts,
+    aggregation: exportObj.aggregation,
+    quantiles_used: getQuantiles()
+  };
+
+  var tcBlock = document.getElementById('truthcertExport');
+  tcBlock.textContent = JSON.stringify(truthcert, null, 2);
+  var copyBtn4 = document.createElement('button');
+  copyBtn4.className = 'copy-btn';
+  copyBtn4.textContent = 'Copy';
+  copyBtn4.onclick = function() { copyToClipboard('truthcertExport'); };
+  tcBlock.appendChild(copyBtn4);
+}
+
+function copyToClipboard(elementId) {
+  var el = document.getElementById(elementId);
+  // Get text content excluding button text
+  var text = el.textContent;
+  // Remove trailing 'Copy' from copy button
+  if (text.endsWith('Copy')) text = text.slice(0, -4).trim();
+  navigator.clipboard.writeText(text).then(function() {
+    var btn = el.querySelector('.copy-btn');
+    if (btn) { btn.textContent = 'Copied!'; setTimeout(function() { btn.textContent = 'Copy'; }, 1500); }
+  });
+}
+
+function downloadJSON() {
+  var el = document.getElementById('jsonExport');
+  var text = el.textContent;
+  if (text.endsWith('Copy')) text = text.slice(0, -4).trim();
+  var blob = new Blob([text], { type: 'application/json' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'priorlab_export.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function downloadTruthCert() {
+  var el = document.getElementById('truthcertExport');
+  var text = el.textContent;
+  if (text.endsWith('Copy')) text = text.slice(0, -4).trim();
+  var blob = new Blob([text], { type: 'application/json' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'priorlab_truthcert.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ===== Example Loading =====
+
+function loadExample(key) {
+  if (!key || !EXAMPLES[key]) return;
+  var ex = EXAMPLES[key];
+
+  document.getElementById('paramName').value = ex.parameter;
+  document.getElementById('paramDesc').value = ex.description;
+
+  // Load first expert's quantiles into the form
+  var q = ex.experts[0].quantiles;
+  document.getElementById('qLower').value = q.lower;
+  document.getElementById('qQ1').value = q.q1;
+  document.getElementById('qMedian').value = q.median;
+  document.getElementById('qQ3').value = q.q3;
+  document.getElementById('qUpper').value = q.upper;
+
+  // Set method to quantile
+  document.getElementById('elicitMethod').value = 'quantile';
+  toggleElicitMethod();
+
+  // Clear previous experts and add all from example
+  appState.experts = [];
+  for (var i = 0; i < ex.experts.length; i++) {
+    var e = ex.experts[i];
+    var eq = {
+      lower: e.quantiles.lower, q1: e.quantiles.q1, median: e.quantiles.median,
+      q3: e.quantiles.q3, upper: e.quantiles.upper, lower_p: 0.05, upper_p: 0.95
+    };
+    var fits = fitAllDistributions(eq);
+    var best = selectBestFit(fits);
+    appState.experts.push({
+      id: e.id, label: e.label, quantiles: eq,
+      bestFit: best, allFits: fits, weight: 1.0
+    });
+  }
+
+  onQuantileChange();
+  renderExperts();
+
+  // Reset fitted distributions
+  appState.fittedDistributions = [];
+  appState.bestFit = null;
+
+  document.getElementById('exampleSelect').value = '';
+}
+
+// ===== Initialization =====
+function initApp() {
+  onQuantileChange();
+  rebuildRoulette();
+}
+
+setTimeout(initApp, 100);
+</script>
+</body>
+</html>
