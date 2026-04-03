@@ -310,6 +310,7 @@ body.dark-mode .js-plotly-plot .plotly .modebar-btn path { fill: var(--text-seco
     <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-preview" id="tabBtn-preview" onclick="switchTab('preview')">Prior-Posterior Preview</button>
     <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-multi" id="tabBtn-multi" onclick="switchTab('multi')">Multi-Expert</button>
     <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-export" id="tabBtn-export" onclick="switchTab('export')">Export</button>
+    <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-advanced" id="tabBtn-advanced" onclick="switchTab('advanced')">Advanced</button>
   </nav>
 
   <!-- ===== Tab 1: Elicitation ===== -->
@@ -515,6 +516,46 @@ body.dark-mode .js-plotly-plot .plotly .modebar-btn path { fill: var(--text-seco
         <button class="btn btn-primary" onclick="downloadJSON()">Download JSON</button>
         <button class="btn btn-secondary" onclick="downloadTruthCert()">Download TruthCert</button>
       </div>
+    </div>
+  </div>
+
+  <!-- ===== Tab 6: Advanced ===== -->
+  <div class="tab-content" id="tab-advanced" role="tabpanel" aria-labelledby="tabBtn-advanced">
+    <div class="card">
+      <h3>Advanced Bayesian Methods</h3>
+      <p class="text-sm text-muted mb-1">Post-elicitation diagnostics powered by 15 advanced modules. Requires 2+ experts (use Multi-Expert tab to add experts first).</p>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; margin-bottom:1rem;">
+        <button class="btn btn-primary" onclick="runAdvancedDivergence()">Compute Divergences</button>
+        <button class="btn btn-primary" onclick="runAdvancedSensitivity()">Run Sensitivity</button>
+        <button class="btn btn-primary" onclick="runAdvancedScoring()">Score Experts</button>
+        <button class="btn btn-primary" onclick="runAdvancedGeometry()">Geodesic Path</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Divergence Heatmap (Hellinger Distance)</h3>
+      <p class="text-sm text-muted mb-1">Pairwise expert disagreement: 0 = identical, 1 = maximally different.</p>
+      <div id="advDivergenceChart" style="width:100%;height:400px;" role="img" aria-label="Divergence heatmap"></div>
+    </div>
+
+    <div class="card">
+      <h3>Global Sensitivity Sweep</h3>
+      <p class="text-sm text-muted mb-1">Posterior mean as prior mu varies over +/- 2 SD, with 95% CI band.</p>
+      <div id="advSensitivityChart" style="width:100%;height:400px;" role="img" aria-label="Sensitivity sweep chart"></div>
+      <div id="advSensitivitySummary" class="mt-1 text-sm"></div>
+    </div>
+
+    <div class="card">
+      <h3>Expert Scoring (CRPS, Log Score, Skill Score)</h3>
+      <p class="text-sm text-muted mb-1">Proper scoring rules evaluated at elicited quantiles. Lower CRPS = better calibration.</p>
+      <div id="advScoringChart" style="width:100%;height:400px;" role="img" aria-label="Expert scoring bar chart"></div>
+    </div>
+
+    <div class="card">
+      <h3>Information Geometry (Geodesic Path)</h3>
+      <p class="text-sm text-muted mb-1">Fisher-Rao geodesic between first two experts in (mu, sigma) space.</p>
+      <div id="advGeometryChart" style="width:100%;height:400px;" role="img" aria-label="Geodesic path chart"></div>
+      <div id="advGeometrySummary" class="mt-1 text-sm"></div>
     </div>
   </div>
 </main>
@@ -1272,6 +1313,15 @@ function switchTab(tabId) {
   if (tabId === 'export') {
     updateExport();
   }
+  if (tabId === 'advanced') {
+    // Auto-run all advanced panels if experts exist
+    if (appState.experts.length >= 2) {
+      runAdvancedDivergence();
+      runAdvancedSensitivity();
+      runAdvancedScoring();
+      runAdvancedGeometry();
+    }
+  }
 }
 
 function toggleElicitMethod() {
@@ -1747,6 +1797,384 @@ function loadExample(key) {
   appState.bestFit = null;
 
   document.getElementById('exampleSelect').value = '';
+}
+
+// ===== Advanced Bayesian Methods =====
+
+// --- Hellinger distance (JS port from divergence.py) ---
+function hellingerDistance(pdf1, pdf2, grid) {
+  // H(p,q) = sqrt(1 - BC), BC = integral sqrt(p*q) dx
+  var bc = 0;
+  for (var i = 1; i < grid.length; i++) {
+    var dx = grid[i] - grid[i - 1];
+    var v0 = Math.sqrt(Math.max(pdf1[i - 1], 0) * Math.max(pdf2[i - 1], 0));
+    var v1 = Math.sqrt(Math.max(pdf1[i], 0) * Math.max(pdf2[i], 0));
+    bc += 0.5 * (v0 + v1) * dx;
+  }
+  bc = Math.min(Math.max(bc, 0), 1);
+  return Math.sqrt(1 - bc);
+}
+
+function runAdvancedDivergence() {
+  if (appState.experts.length < 2) {
+    alert('Add at least 2 experts in the Multi-Expert tab first.');
+    return;
+  }
+  var n = appState.experts.length;
+  var grid = appState.experts[0].bestFit.grid;
+  var labels = appState.experts.map(function(e) { return e.label; });
+
+  // Build pairwise Hellinger matrix
+  var hellMat = [];
+  for (var i = 0; i < n; i++) {
+    hellMat.push([]);
+    for (var j = 0; j < n; j++) {
+      if (i === j) {
+        hellMat[i].push(0);
+      } else {
+        hellMat[i].push(+hellingerDistance(
+          appState.experts[i].bestFit.pdf,
+          appState.experts[j].bestFit.pdf,
+          grid
+        ).toFixed(4));
+      }
+    }
+  }
+
+  // Format cell text
+  var textMat = hellMat.map(function(row) {
+    return row.map(function(v) { return v.toFixed(3); });
+  });
+
+  var bg = appState.darkMode ? '#1e293b' : '#ffffff';
+  var fg = appState.darkMode ? '#f1f5f9' : '#1e293b';
+
+  var trace = {
+    z: hellMat,
+    x: labels,
+    y: labels,
+    type: 'heatmap',
+    colorscale: 'YlOrRd',
+    text: textMat,
+    texttemplate: '%{text}',
+    hovertemplate: '%{y} vs %{x}: H = %{z:.4f}<extra></extra>',
+    showscale: true,
+    colorbar: { title: 'Hellinger', titlefont: { color: fg }, tickfont: { color: fg } }
+  };
+
+  var layout = {
+    title: { text: 'Pairwise Hellinger Distance', font: { color: fg, size: 14 } },
+    paper_bgcolor: bg,
+    plot_bgcolor: bg,
+    xaxis: { color: fg, tickfont: { color: fg } },
+    yaxis: { color: fg, tickfont: { color: fg }, autorange: 'reversed' },
+    font: { family: 'Segoe UI, system-ui, sans-serif', color: fg },
+    margin: { t: 50, r: 20, b: 80, l: 100 }
+  };
+
+  Plotly.newPlot('advDivergenceChart', [trace], layout, { responsive: true });
+}
+
+// --- Global sensitivity (JS port from sensitivity.py) ---
+function runAdvancedSensitivity() {
+  var best = appState.bestFit;
+  if (!best || best.family !== 'Normal') {
+    // Fall back: use first expert if available
+    if (appState.experts.length > 0 && appState.experts[0].bestFit.family === 'Normal') {
+      best = appState.experts[0].bestFit;
+    } else {
+      alert('Sensitivity analysis requires a Normal best-fit distribution. Run fitting first or load an example.');
+      return;
+    }
+  }
+
+  var mu0 = best.params.mu;
+  var sigma0 = best.params.sigma;
+  var thetaData = parseFloat(document.getElementById('dataTheta').value) || 0.5;
+  var seData = parseFloat(document.getElementById('dataSE').value) || 0.2;
+  if (seData <= 0) seData = 0.2;
+
+  var nSteps = 30;
+  var muLo = mu0 - 2 * sigma0;
+  var muHi = mu0 + 2 * sigma0;
+  var muVals = linspace(muLo, muHi, nSteps);
+
+  var postMeans = [];
+  var ciLo = [];
+  var ciHi = [];
+
+  for (var i = 0; i < nSteps; i++) {
+    var precPrior = 1.0 / (sigma0 * sigma0);
+    var precData = 1.0 / (seData * seData);
+    var precPost = precPrior + precData;
+    var muPost = (precPrior * muVals[i] + precData * thetaData) / precPost;
+    var sigPost = 1.0 / Math.sqrt(precPost);
+    postMeans.push(muPost);
+    ciLo.push(muPost - 1.96 * sigPost);
+    ciHi.push(muPost + 1.96 * sigPost);
+  }
+
+  // Robustness ratio
+  var absVals = postMeans.map(Math.abs);
+  var minAbs = Math.min.apply(null, absVals.filter(function(v) { return v > 1e-12; }));
+  var maxAbs = Math.max.apply(null, absVals);
+  var robustness = minAbs > 1e-12 ? (maxAbs / minAbs).toFixed(2) : 'Inf';
+
+  var bg = appState.darkMode ? '#1e293b' : '#ffffff';
+  var fg = appState.darkMode ? '#f1f5f9' : '#1e293b';
+  var gridC = appState.darkMode ? '#334155' : '#e2e8f0';
+
+  var traces = [
+    {
+      x: muVals, y: ciHi, type: 'scatter', mode: 'lines',
+      line: { color: 'rgba(15,118,110,0)' }, showlegend: false, hoverinfo: 'skip'
+    },
+    {
+      x: muVals, y: ciLo, type: 'scatter', mode: 'lines',
+      fill: 'tonexty', fillcolor: 'rgba(15,118,110,0.15)',
+      line: { color: 'rgba(15,118,110,0)' }, name: '95% CI band', hoverinfo: 'skip'
+    },
+    {
+      x: muVals, y: postMeans, type: 'scatter', mode: 'lines',
+      name: 'Posterior mean', line: { color: '#0f766e', width: 3 }
+    },
+    {
+      x: [mu0], y: [postMeans[Math.floor(nSteps / 2)]],
+      type: 'scatter', mode: 'markers',
+      name: 'Current prior', marker: { color: '#ef4444', size: 12, symbol: 'star' }
+    }
+  ];
+
+  var layout = {
+    title: { text: 'Global Sensitivity: Posterior vs Prior Mean', font: { color: fg, size: 14 } },
+    paper_bgcolor: bg, plot_bgcolor: bg,
+    xaxis: { title: 'Prior mu', color: fg, gridcolor: gridC },
+    yaxis: { title: 'Posterior mean', color: fg, gridcolor: gridC },
+    font: { family: 'Segoe UI, system-ui, sans-serif', color: fg },
+    margin: { t: 50, r: 20, b: 50, l: 60 },
+    showlegend: true, legend: { font: { color: fg } }
+  };
+
+  Plotly.newPlot('advSensitivityChart', traces, layout, { responsive: true });
+
+  document.getElementById('advSensitivitySummary').innerHTML =
+    '<strong>Robustness ratio:</strong> ' + robustness +
+    ' | <strong>Shrinkage at current prior:</strong> ' +
+    (1 - (1 / (sigma0 * sigma0)) / (1 / (sigma0 * sigma0) + 1 / (seData * seData))).toFixed(3).replace(/^0\./, '.') +
+    ' | <strong>Data:</strong> theta=' + thetaData + ', SE=' + seData;
+}
+
+// --- Scoring rules (JS port from scoring_rules.py) ---
+function computeCRPS(pdf, grid, xObs) {
+  // CRPS = integral |F(y) - 1(y >= x)| dy
+  // Build CDF from PDF
+  var cdf = [0];
+  for (var i = 1; i < grid.length; i++) {
+    var dx = grid[i] - grid[i - 1];
+    cdf.push(cdf[i - 1] + 0.5 * (pdf[i] + pdf[i - 1]) * dx);
+  }
+  // Normalize CDF
+  var totalArea = cdf[cdf.length - 1];
+  if (totalArea > 0) {
+    for (var j = 0; j < cdf.length; j++) cdf[j] /= totalArea;
+  }
+  // Integrate |F(y) - H(y - xObs)|^2 dy
+  var crps = 0;
+  for (var k = 1; k < grid.length; k++) {
+    var dx2 = grid[k] - grid[k - 1];
+    var h0 = grid[k - 1] >= xObs ? 1 : 0;
+    var h1 = grid[k] >= xObs ? 1 : 0;
+    var d0 = (cdf[k - 1] - h0);
+    var d1 = (cdf[k] - h1);
+    crps += 0.5 * (d0 * d0 + d1 * d1) * dx2;
+  }
+  return crps;
+}
+
+function computeLogScore(pdf, grid, xObs) {
+  // Log score = log(f(xObs)), interpolated
+  var bestIdx = 0;
+  var bestDist = Infinity;
+  for (var i = 0; i < grid.length; i++) {
+    var d = Math.abs(grid[i] - xObs);
+    if (d < bestDist) { bestDist = d; bestIdx = i; }
+  }
+  var fVal = Math.max(pdf[bestIdx], 1e-300);
+  return Math.log(fVal);
+}
+
+function runAdvancedScoring() {
+  if (appState.experts.length < 1) {
+    alert('Add at least 1 expert in the Multi-Expert tab first.');
+    return;
+  }
+
+  var thetaData = parseFloat(document.getElementById('dataTheta').value) || 0.5;
+  var labels = [];
+  var crpsVals = [];
+  var logVals = [];
+  var skillVals = [];
+
+  for (var i = 0; i < appState.experts.length; i++) {
+    var e = appState.experts[i];
+    var grid = e.bestFit.grid;
+    var pdf = e.bestFit.pdf;
+
+    var crps = computeCRPS(pdf, grid, thetaData);
+    var logS = computeLogScore(pdf, grid, thetaData);
+
+    // Uniform reference CRPS for skill score
+    var span = grid[grid.length - 1] - grid[0];
+    var unifPdf = grid.map(function() { return 1.0 / span; });
+    var crpsUnif = computeCRPS(unifPdf, grid, thetaData);
+
+    var skill = crpsUnif > 1e-12 ? 1 - crps / crpsUnif : 0;
+
+    labels.push(e.label);
+    crpsVals.push(+crps.toFixed(4));
+    logVals.push(+logS.toFixed(4));
+    skillVals.push(+Math.max(skill, 0).toFixed(4));
+  }
+
+  var bg = appState.darkMode ? '#1e293b' : '#ffffff';
+  var fg = appState.darkMode ? '#f1f5f9' : '#1e293b';
+  var gridC = appState.darkMode ? '#334155' : '#e2e8f0';
+
+  var traces = [
+    {
+      x: labels, y: crpsVals, type: 'bar', name: 'CRPS',
+      marker: { color: '#3b82f6' }
+    },
+    {
+      x: labels, y: logVals.map(function(v) { return -v; }), type: 'bar', name: '-Log Score',
+      marker: { color: '#f59e0b' }
+    },
+    {
+      x: labels, y: skillVals, type: 'bar', name: 'Skill Score',
+      marker: { color: '#22c55e' }
+    }
+  ];
+
+  var layout = {
+    title: { text: 'Expert Scoring (obs. theta=' + thetaData + ')', font: { color: fg, size: 14 } },
+    barmode: 'group',
+    paper_bgcolor: bg, plot_bgcolor: bg,
+    xaxis: { title: 'Expert', color: fg, gridcolor: gridC },
+    yaxis: { title: 'Score', color: fg, gridcolor: gridC },
+    font: { family: 'Segoe UI, system-ui, sans-serif', color: fg },
+    margin: { t: 50, r: 20, b: 60, l: 60 },
+    showlegend: true, legend: { font: { color: fg } }
+  };
+
+  Plotly.newPlot('advScoringChart', traces, layout, { responsive: true });
+}
+
+// --- Information geometry (JS port from information_geometry.py) ---
+function fisherRaoDistance(mu1, s1, mu2, s2) {
+  var dmu = mu1 - mu2;
+  var ds = s1 - s2;
+  var arg = 1.0 + (dmu * dmu + 2.0 * ds * ds) / (2.0 * s1 * s2);
+  arg = Math.max(arg, 1.0);
+  return Math.sqrt(2) * Math.acosh(arg);
+}
+
+function geodesicPath(muA, sigA, muB, sigB, nSteps) {
+  nSteps = nSteps || 30;
+  // Natural parameters: eta1 = mu/sigma^2, eta2 = -1/(2*sigma^2)
+  var eta1A = muA / (sigA * sigA);
+  var eta2A = -1.0 / (2.0 * sigA * sigA);
+  var eta1B = muB / (sigB * sigB);
+  var eta2B = -1.0 / (2.0 * sigB * sigB);
+
+  var path = [];
+  for (var i = 0; i <= nSteps; i++) {
+    var t = i / nSteps;
+    var e1 = (1 - t) * eta1A + t * eta1B;
+    var e2 = (1 - t) * eta2A + t * eta2B;
+    // Back to (mu, sigma): sigma^2 = -1/(2*eta2), mu = eta1*sigma^2
+    var s2 = -1.0 / (2.0 * e2);
+    if (s2 <= 0) s2 = 1e-6;
+    var sig = Math.sqrt(s2);
+    var mu = e1 * s2;
+    path.push({ t: t, mu: mu, sigma: sig });
+  }
+  return path;
+}
+
+function runAdvancedGeometry() {
+  if (appState.experts.length < 2) {
+    alert('Add at least 2 experts in the Multi-Expert tab first.');
+    return;
+  }
+
+  var e1 = appState.experts[0];
+  var e2 = appState.experts[1];
+
+  // Get mu, sigma from best fits (Normal)
+  var mu1 = e1.bestFit.params.mu !== undefined ? e1.bestFit.params.mu : e1.quantiles.median;
+  var sig1 = e1.bestFit.params.sigma !== undefined ? e1.bestFit.params.sigma : (e1.quantiles.q3 - e1.quantiles.q1) / (2 * 0.6745);
+  var mu2 = e2.bestFit.params.mu !== undefined ? e2.bestFit.params.mu : e2.quantiles.median;
+  var sig2 = e2.bestFit.params.sigma !== undefined ? e2.bestFit.params.sigma : (e2.quantiles.q3 - e2.quantiles.q1) / (2 * 0.6745);
+
+  sig1 = Math.max(sig1, 0.01);
+  sig2 = Math.max(sig2, 0.01);
+
+  var frDist = fisherRaoDistance(mu1, sig1, mu2, sig2);
+  var path = geodesicPath(mu1, sig1, mu2, sig2, 40);
+
+  var pathMu = path.map(function(p) { return p.mu; });
+  var pathSig = path.map(function(p) { return p.sigma; });
+
+  var bg = appState.darkMode ? '#1e293b' : '#ffffff';
+  var fg = appState.darkMode ? '#f1f5f9' : '#1e293b';
+  var gridC = appState.darkMode ? '#334155' : '#e2e8f0';
+
+  var traces = [
+    {
+      x: pathMu, y: pathSig, type: 'scatter', mode: 'lines',
+      name: 'Geodesic path', line: { color: '#0f766e', width: 2.5 }
+    },
+    {
+      x: [mu1], y: [sig1], type: 'scatter', mode: 'markers+text',
+      name: e1.label, marker: { color: '#3b82f6', size: 14, symbol: 'circle' },
+      text: [e1.label], textposition: 'top right', textfont: { size: 11, color: fg }
+    },
+    {
+      x: [mu2], y: [sig2], type: 'scatter', mode: 'markers+text',
+      name: e2.label, marker: { color: '#ef4444', size: 14, symbol: 'circle' },
+      text: [e2.label], textposition: 'top right', textfont: { size: 11, color: fg }
+    }
+  ];
+
+  // Add remaining experts as dots
+  for (var i = 2; i < appState.experts.length; i++) {
+    var ei = appState.experts[i];
+    var mi = ei.bestFit.params.mu !== undefined ? ei.bestFit.params.mu : ei.quantiles.median;
+    var si = ei.bestFit.params.sigma !== undefined ? ei.bestFit.params.sigma : (ei.quantiles.q3 - ei.quantiles.q1) / (2 * 0.6745);
+    si = Math.max(si, 0.01);
+    traces.push({
+      x: [mi], y: [si], type: 'scatter', mode: 'markers+text',
+      name: ei.label, marker: { color: '#8b5cf6', size: 10, symbol: 'diamond' },
+      text: [ei.label], textposition: 'top right', textfont: { size: 10, color: fg }
+    });
+  }
+
+  var layout = {
+    title: { text: 'Fisher-Rao Geodesic Path', font: { color: fg, size: 14 } },
+    paper_bgcolor: bg, plot_bgcolor: bg,
+    xaxis: { title: 'mu', color: fg, gridcolor: gridC },
+    yaxis: { title: 'sigma', color: fg, gridcolor: gridC },
+    font: { family: 'Segoe UI, system-ui, sans-serif', color: fg },
+    margin: { t: 50, r: 20, b: 50, l: 60 },
+    showlegend: true, legend: { font: { color: fg } }
+  };
+
+  Plotly.newPlot('advGeometryChart', traces, layout, { responsive: true });
+
+  document.getElementById('advGeometrySummary').innerHTML =
+    '<strong>Fisher-Rao distance:</strong> ' + frDist.toFixed(4) +
+    ' | <strong>From:</strong> ' + e1.label + ' N(' + mu1.toFixed(3) + ', ' + sig1.toFixed(3) + ')' +
+    ' | <strong>To:</strong> ' + e2.label + ' N(' + mu2.toFixed(3) + ', ' + sig2.toFixed(3) + ')';
 }
 
 // ===== Initialization =====
