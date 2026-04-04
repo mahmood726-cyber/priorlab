@@ -19,7 +19,7 @@ body{
 }
 .page{max-width:780px;margin:0 auto;padding:3rem 2rem 4rem}
 
-/* -- Masthead ---------------------------------------- */
+/* ── Masthead ──────────────────────────────────── */
 .masthead{
   text-align:center;padding:2rem 0 1.5rem;
   border-bottom:3px double var(--border);margin-bottom:2.5rem
@@ -35,7 +35,7 @@ body{
 }
 .masthead .byline a{color:var(--link);text-decoration:none}
 
-/* -- Body -------------------------------------------- */
+/* ── Body ──────────────────────────────────────── */
 .body-section{margin-bottom:3rem}
 .body-text{
   font-size:1.18rem;line-height:2;text-align:justify;hyphens:auto;
@@ -69,7 +69,7 @@ body{
 .body-text .s[data-r="6"]::after{background:var(--s6)}
 .body-text .s[data-r="7"]::after{background:var(--s7)}
 
-/* -- Sentence map ------------------------------------ */
+/* ── Sentence map ──────────────────────────────── */
 .smap{display:flex;gap:2px;border-radius:6px;overflow:hidden;margin-bottom:2rem}
 .smap-seg{
   flex:1;padding:8px 4px;text-align:center;cursor:pointer;
@@ -78,7 +78,7 @@ body{
 }
 .smap-seg:hover{opacity:.8}
 
-/* -- Figures gallery --------------------------------- */
+/* ── Figures gallery ───────────────────────────── */
 .figures-section{margin-bottom:3rem}
 .figures-section h2{
   font-family:system-ui,sans-serif;font-size:.7rem;font-weight:700;
@@ -97,7 +97,7 @@ body{
   color:var(--text2);border-top:1px solid var(--border)
 }
 
-/* -- App link ---------------------------------------- */
+/* ── App link ──────────────────────────────────── */
 .app-link-section{margin-bottom:3rem;text-align:center}
 .app-btn{
   display:inline-block;padding:12px 32px;background:var(--accent);color:#fff;
@@ -107,7 +107,7 @@ body{
 }
 .app-btn:hover{background:#6d5210}
 
-/* -- Notes ------------------------------------------- */
+/* ── Notes ─────────────────────────────────────── */
 .notes-section{
   background:var(--card);border-radius:8px;padding:1.5rem 1.8rem;
   margin-bottom:2.5rem
@@ -124,7 +124,7 @@ body{
 .notes-grid dd{font-size:.85rem;color:var(--text2)}
 .notes-grid dd a{color:var(--link);text-decoration:none;word-break:break-all}
 
-/* -- References -------------------------------------- */
+/* ── References ────────────────────────────────── */
 .refs-section{margin-bottom:2.5rem}
 .refs-section h2{
   font-family:system-ui,sans-serif;font-size:.7rem;font-weight:700;
@@ -136,7 +136,7 @@ body{
   padding-left:1.2rem;line-height:1.8
 }
 
-/* -- Disclosure -------------------------------------- */
+/* ── Disclosure ────────────────────────────────── */
 .disclosure{
   font-family:system-ui,sans-serif;font-size:.78rem;color:var(--text2);
   line-height:1.7;padding:1.2rem 1.5rem;background:var(--card);
@@ -144,7 +144,7 @@ body{
 }
 .disclosure strong{color:var(--text);font-size:.7rem;letter-spacing:.12em;text-transform:uppercase}
 
-/* -- Footer ------------------------------------------ */
+/* ── Footer ────────────────────────────────────── */
 .footer{
   padding-top:1.5rem;border-top:1px solid var(--border);
   display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem
@@ -159,7 +159,7 @@ body{
 }
 .footer .actions button:hover{background:var(--card)}
 
-/* -- Print ------------------------------------------- */
+/* ── Print ─────────────────────────────────────── */
 @media print{
   .smap,.footer .actions,.app-link-section,.skip-link{display:none!important}
   .s::after{display:none!important}
@@ -170,7 +170,7 @@ body{
   .refs-section{page-break-before:auto}
 }
 
-/* -- Mobile ------------------------------------------ */
+/* ── Mobile ────────────────────────────────────── */
 @media(max-width:640px){
   .page{padding:1.5rem 1rem}
   .masthead h1{font-size:1.5rem}
@@ -184,7 +184,7 @@ body{
   .body-text{font-size:.95rem}
 }
 
-/* -- Skip link --------------------------------------- */
+/* ── Skip link ─────────────────────────────────── */
 .skip-link{
   position:absolute;top:-50px;left:0;background:#fff;padding:6px 12px;
   font-family:system-ui,sans-serif;font-size:.82rem;z-index:999;
@@ -192,7 +192,7 @@ body{
 }
 .skip-link:focus{top:8px;left:8px}
 
-/* -- Reduced motion ---------------------------------- */
+/* ── Reduced motion ────────────────────────────── */
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -252,12 +252,6 @@ body{
 <script>
 const D = {
   "title": "PriorLab: Interactive Bayesian Prior Elicitation for Meta-Analysis Using SHELF Methods",
-  "slug": "priorlab-bayesian-prior-elicitation",
-  "author": "Mahmood Ahmad",
-  "affiliation": "Tahir Heart Institute",
-  "email": "author@example.com",
-  "date": "2026-04-01",
-  "body": "Can Bayesian prior elicitation for meta-analysis be conducted interactively in a browser without paper-based SHELF forms? PriorLab was validated on three elicitation scenarios: treatment effect (log odds ratio, three experts), heterogeneity (tau-squared, one expert), and baseline risk (event rate, two experts). The tool implements three complementary elicitation methods (quantile entry, SHELF roulette histogram, visual distribution sculpting), fitting six candidate families (Normal, Log-Normal, Beta, Gamma, Half-Cauchy, Student-t) via least-squares quantile matching with linear and logarithmic multi-expert opinion pooling. Best-fit Kolmogorov-Smirnov distances were 0.031 for treatment effect (Log-Normal), 0.024 for heterogeneity (Half-Cauchy), and 0.018 for baseline risk (Beta), with pooled distributions achieving consensus divergence below 0.05. Conjugate prior-posterior preview demonstrates real-time sensitivity of posterior summaries to alternative prior specifications across scenarios. PriorLab is the first browser-based SHELF implementation, exporting elicited priors as JSON, R, and Python code for Bayesian meta-analysis packages. The tool is limited to univariate priors and does not support correlated multivariate or hierarchical prior structures.",
   "summary": "PriorLab implements SHELF elicitation in a browser, fitting 6 distribution families via quantile matching with KS distances 0.018-0.031 across 3 scenarios and multi-expert pooling achieving consensus divergence below 0.05.",
   "type": "methods",
   "primary_estimand": "Kolmogorov-Smirnov distance for distribution fit",
@@ -272,27 +266,81 @@ const D = {
   "doi": "",
   "protocol": "",
   "source_article": "",
+  "body": "Can Bayesian prior elicitation for meta-analysis be conducted interactively in a browser without paper-based SHELF forms? PriorLab was validated on three elicitation scenarios: treatment effect (log odds ratio, three experts), heterogeneity (tau-squared, one expert), and baseline risk (event rate, two experts). The tool implements three complementary elicitation methods (quantile entry, SHELF roulette histogram, visual distribution sculpting), fitting six candidate families (Normal, Log-Normal, Beta, Gamma, Half-Cauchy, Student-t) via least-squares quantile matching with linear and logarithmic multi-expert opinion pooling. Best-fit Kolmogorov-Smirnov distances were 0.031 for treatment effect (Log-Normal), 0.024 for heterogeneity (Half-Cauchy), and 0.018 for baseline risk (Beta), with pooled distributions achieving consensus divergence below 0.05. Conjugate prior-posterior preview demonstrates real-time sensitivity of posterior summaries to alternative prior specifications across scenarios. PriorLab is the first browser-based SHELF implementation, exporting elicited priors as JSON, R, and Python code for Bayesian meta-analysis packages. The tool is limited to univariate priors and does not support correlated multivariate or hierarchical prior structures.",
   "validation": {
-    "status": "pass",
+    "status": "fail",
     "checks": [
-      {"name": "single paragraph", "ok": true, "detail": "Body must not contain blank-line paragraph breaks."},
-      {"name": "sentence count", "ok": true, "detail": "Found 7 sentences."},
-      {"name": "word count", "ok": true, "detail": "Found 156 words."},
-      {"name": "no headings", "ok": true, "detail": "No markdown headings allowed in body."},
-      {"name": "no links", "ok": true, "detail": "No links or DOI links allowed in body."},
-      {"name": "result sentence has interval", "ok": true, "detail": "Sentence 4 should include a confidence interval."},
-      {"name": "result sentence has estimand", "ok": true, "detail": "Sentence 4 should name an effect measure or test metric."},
-      {"name": "boundary sentence present", "ok": true, "detail": "Sentence 7 should express a limitation, harm, or scope boundary."}
+      {
+        "name": "single paragraph",
+        "ok": true,
+        "detail": "Body must not contain blank-line paragraph breaks."
+      },
+      {
+        "name": "sentence count",
+        "ok": true,
+        "detail": "Found 7 sentences."
+      },
+      {
+        "name": "word count",
+        "ok": true,
+        "detail": "Found 156 words."
+      },
+      {
+        "name": "no headings",
+        "ok": true,
+        "detail": "No markdown headings allowed in body."
+      },
+      {
+        "name": "no links",
+        "ok": true,
+        "detail": "No links or DOI links allowed in body."
+      },
+      {
+        "name": "result sentence has interval",
+        "ok": true,
+        "detail": "Sentence 4 should include a quantitative result such as a percentage, count, or interval."
+      },
+      {
+        "name": "result sentence has estimand",
+        "ok": false,
+        "detail": "Sentence 4 should name an effect measure or test metric."
+      },
+      {
+        "name": "boundary sentence present",
+        "ok": true,
+        "detail": "Sentence 7 should express a limitation, harm, or scope boundary."
+      }
     ]
   },
   "sentences": [
-    {"role": "Question", "text": "Can Bayesian prior elicitation for meta-analysis be conducted interactively in a browser without paper-based SHELF forms?"},
-    {"role": "Dataset", "text": "PriorLab was validated on three elicitation scenarios: treatment effect (log odds ratio, three experts), heterogeneity (tau-squared, one expert), and baseline risk (event rate, two experts)."},
-    {"role": "Method", "text": "The tool implements three complementary elicitation methods (quantile entry, SHELF roulette histogram, visual distribution sculpting), fitting six candidate families (Normal, Log-Normal, Beta, Gamma, Half-Cauchy, Student-t) via least-squares quantile matching with linear and logarithmic multi-expert opinion pooling."},
-    {"role": "Primary result", "text": "Best-fit Kolmogorov-Smirnov distances were 0.031 for treatment effect (Log-Normal), 0.024 for heterogeneity (Half-Cauchy), and 0.018 for baseline risk (Beta), with pooled distributions achieving consensus divergence below 0.05."},
-    {"role": "Robustness", "text": "Conjugate prior-posterior preview demonstrates real-time sensitivity of posterior summaries to alternative prior specifications across scenarios."},
-    {"role": "Interpretation", "text": "PriorLab is the first browser-based SHELF implementation, exporting elicited priors as JSON, R, and Python code for Bayesian meta-analysis packages."},
-    {"role": "Boundary", "text": "The tool is limited to univariate priors and does not support correlated multivariate or hierarchical prior structures."}
+    {
+      "role": "Question",
+      "text": "Can Bayesian prior elicitation for meta-analysis be conducted interactively in a browser without paper-based SHELF forms?"
+    },
+    {
+      "role": "Dataset",
+      "text": "PriorLab was validated on three elicitation scenarios: treatment effect (log odds ratio, three experts), heterogeneity (tau-squared, one expert), and baseline risk (event rate, two experts)."
+    },
+    {
+      "role": "Method",
+      "text": "The tool implements three complementary elicitation methods (quantile entry, SHELF roulette histogram, visual distribution sculpting), fitting six candidate families (Normal, Log-Normal, Beta, Gamma, Half-Cauchy, Student-t) via least-squares quantile matching with linear and logarithmic multi-expert opinion pooling."
+    },
+    {
+      "role": "Primary result",
+      "text": "Best-fit Kolmogorov-Smirnov distances were 0.031 for treatment effect (Log-Normal), 0.024 for heterogeneity (Half-Cauchy), and 0.018 for baseline risk (Beta), with pooled distributions achieving consensus divergence below 0.05."
+    },
+    {
+      "role": "Robustness",
+      "text": "Conjugate prior-posterior preview demonstrates real-time sensitivity of posterior summaries to alternative prior specifications across scenarios."
+    },
+    {
+      "role": "Interpretation",
+      "text": "PriorLab is the first browser-based SHELF implementation, exporting elicited priors as JSON, R, and Python code for Bayesian meta-analysis packages."
+    },
+    {
+      "role": "Boundary",
+      "text": "The tool is limited to univariate priors and does not support correlated multivariate or hierarchical prior structures."
+    }
   ],
   "primary_plot": {},
   "studies": [],
@@ -300,19 +348,14 @@ const D = {
   "prisma": {},
   "included_papers": [],
   "analysis_modules": [],
-  "notes": {
-    "app": "PriorLab v1.0",
-    "data": "3 elicitation scenarios (treatment effect, heterogeneity, baseline risk)",
-    "code": "https://github.com/PLACEHOLDER/priorlab",
-    "doi": "",
-    "version": "1.0",
-    "date": "2026-04-01",
-    "validation": "DRAFT"
-  },
+  "author": "Mahmood Ahmad",
+  "affiliation": "Tahir Heart Institute",
+  "email": "author@example.com",
+  "slug": "priorlab-bayesian-prior-elicitation",
   "references": [
-    "O\u2019Hagan A, Buck CE, Daneshkhah A, et al. Uncertain Judgements: Eliciting Experts\u2019 Probabilities. Wiley; 2006.",
-    "Oakley JE, O\u2019Hagan A. SHELF: the Sheffield Elicitation Framework. University of Sheffield; 2019.",
-    "R\u00f6ver C, Bender R, Dias S, et al. On weakly informative prior distributions for the heterogeneity parameter in Bayesian random-effects meta-analysis. Res Synth Methods. 2021;12(4):448-474."
+    "O'Hagan A, Buck CE, Daneshkhah A, et al. Uncertain Judgements: Eliciting Experts' Probabilities. Wiley; 2006.",
+    "Oakley JE, O'Hagan A. SHELF: the Sheffield Elicitation Framework. University of Sheffield; 2019.",
+    "Rover C, Bender R, Dias S, et al. On weakly informative prior distributions for the heterogeneity parameter in Bayesian random-effects meta-analysis. Res Synth Methods. 2021;12(4):448-474."
   ],
   "_assets": [],
   "_disclosure": "This work represents a compiler-generated evidence micro-publication. AI is used as a constrained synthesis engine operating on structured inputs and predefined rules, rather than as an autonomous author. All results and text were reviewed and verified by the author, who takes full responsibility for the content."
@@ -330,7 +373,7 @@ const ROLES = [
 
 function esc(s){const d=document.createElement("div");d.textContent=String(s??"");return d.innerHTML}
 
-// -- Title + byline --
+// ── Title + byline ──
 document.getElementById("title").textContent = D.title || "Untitled";
 document.title = (D.title||"E156") + " \u2014 E156 Interactive Paper";
 
@@ -341,7 +384,7 @@ if(D.email) parts.push('<a href="mailto:'+esc(D.email)+'">'+esc(D.email)+'</a>')
 if(D.date) parts.push(esc(D.date));
 document.getElementById("byline").innerHTML = parts.join(" &middot; ");
 
-// -- Body with sentence highlighting --
+// ── Body with sentence highlighting ──
 const body = D.body || "";
 const sents = D.sentences || [];
 const bodyEl = document.getElementById("body");
@@ -355,7 +398,7 @@ if(sents.length === 7){
   bodyEl.textContent = body;
 }
 
-// -- Sentence map --
+// ── Sentence map ──
 const smap = document.getElementById("smap");
 ROLES.forEach((r,i) => {
   const seg = document.createElement("div");
@@ -380,7 +423,7 @@ ROLES.forEach((r,i) => {
   smap.appendChild(seg);
 });
 
-// -- Figures from assets --
+// ── Figures from assets ──
 const assets = D._assets || [];
 const imgAssets = assets.filter(a => /\.(png|jpg|jpeg|svg|gif|webp)$/i.test(a));
 if(imgAssets.length > 0){
@@ -402,7 +445,7 @@ if(imgAssets.length > 0){
   });
 }
 
-// -- App link --
+// ── App link ──
 const htmlAssets = assets.filter(a => /\.html$/i.test(a) && a !== "index.html");
 if(htmlAssets.length > 0){
   document.getElementById("app-section").style.display = "";
@@ -412,7 +455,7 @@ if(htmlAssets.length > 0){
   btn.textContent = "Open Interactive App \u2192 " + htmlAssets[0].replace(/[-_]/g," ").replace(/\.html$/,"");
 }
 
-// -- Notes --
+// ── Notes ──
 const notes = D.notes || {};
 const noteFields = [
   ["Type", D.type], ["Primary Estimand", D.primary_estimand],
@@ -438,7 +481,7 @@ noteFields.forEach(([label, val]) => {
   ng.appendChild(dd);
 });
 
-// -- References --
+// ── References ──
 const refs = D.references || [];
 if(refs.length > 0){
   document.getElementById("refs-section").style.display = "";
@@ -450,19 +493,19 @@ if(refs.length > 0){
   });
 }
 
-// -- Disclosure --
+// ── Disclosure ──
 const disc = D._disclosure || "";
 if(disc){
   document.getElementById("disclosure").style.display = "";
   document.getElementById("disclosure-text").textContent = disc;
 }
 
-// -- Footer --
+// ── Footer ──
 const wc = body.split(/\s+/).filter(Boolean).length;
 document.getElementById("wc").textContent = wc;
 document.getElementById("wc-check").textContent = wc === 156 ? "\u2713" : "\u2717 ("+wc+")";
 
-// -- Actions --
+// ── Actions ──
 function copyBody(e){
   navigator.clipboard.writeText(body).then(()=>{
     const b=e&&e.target?e.target:document.querySelector(".actions button");
