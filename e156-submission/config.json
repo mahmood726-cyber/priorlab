@@ -49,10 +49,11 @@
     "validation": "DRAFT"
   },
   "affiliation": "Tahir Heart Institute",
-  "email": "author@example.com",
+  "email": "mahmood.ahmad2@nhs.net",
   "references": [
     "O'Hagan A, Buck CE, Daneshkhah A, et al. Uncertain Judgements: Eliciting Experts' Probabilities. Wiley; 2006.",
     "Oakley JE, O'Hagan A. SHELF: the Sheffield Elicitation Framework. University of Sheffield; 2019.",
     "Rover C, Bender R, Dias S, et al. On weakly informative prior distributions for the heterogeneity parameter in Bayesian random-effects meta-analysis. Res Synth Methods. 2021;12(4):448-474."
-  ]
+  ],
+  "submitted": false
 }

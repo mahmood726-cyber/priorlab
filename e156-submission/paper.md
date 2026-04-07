@@ -1,6 +1,6 @@
 Mahmood Ahmad
 Tahir Heart Institute
-author@example.com
+mahmood.ahmad2@nhs.net
 
 PriorLab: Interactive Bayesian Prior Elicitation for Meta-Analysis Using SHELF Methods
 
