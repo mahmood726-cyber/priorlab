@@ -66,6 +66,27 @@ def _get_score_fn(family, params):
 # Vectorized KSD computation
 # ---------------------------------------------------------------------------
 
+def _restrict_to_support(grid, family):
+    """Restrict the evaluation grid to a family's valid support.
+
+    The score functions for positive-support families (``lognormal``,
+    ``gamma``, ``halfcauchy``) and the unit-interval ``beta`` family diverge
+    as x approaches the boundary of their support (e.g. ``(alpha-1)/x`` as
+    ``x -> 0``).  Evaluating the score on a grid that crosses the boundary
+    produces overflow and a non-finite KSD.  Clip the grid to the interior of
+    the support so the discrepancy stays finite and comparable across families.
+    """
+    grid = np.asarray(grid, dtype=float)
+    if family in ("lognormal", "gamma", "halfcauchy"):
+        sel = grid > 0
+    elif family == "beta":
+        sel = (grid > 0) & (grid < 1)
+    else:
+        return grid
+    restricted = grid[sel]
+    return restricted if restricted.size >= 2 else grid
+
+
 def _median_heuristic(samples):
     """Bandwidth via median heuristic (vectorized)."""
     samples = np.asarray(samples)
@@ -91,8 +112,11 @@ def _compute_ksd_vectorized(samples, score_fn):
     h2 = h ** 2
     h4 = h ** 4
 
-    # Score values for all samples
+    # Score values for all samples. Clamp to a large finite magnitude so that
+    # samples landing near a distribution's support boundary (where the score
+    # legitimately diverges) cannot overflow the squared score products below.
     scores = score_fn(samples)  # shape (n,)
+    scores = np.clip(np.nan_to_num(scores, nan=0.0), -1e150, 1e150)
 
     # Pairwise differences: diff[i,j] = x_i - x_j
     xi = samples[:, None]  # (n, 1)
@@ -190,12 +214,13 @@ def stein_discrepancy(quantiles: ElicitedQuantiles, n_grid: int = 200):
             continue  # Skip failed fits
 
         score_fn = _get_score_fn(family, fitted.params)
-        ksd_sq = _compute_ksd_vectorized(grid, score_fn)
+        fam_grid = _restrict_to_support(grid, family)
+        ksd_sq = _compute_ksd_vectorized(fam_grid, score_fn)
         ksd_val = float(np.sqrt(ksd_sq))
         ksd_by_family[family] = ksd_val
 
         # Bootstrap p-value
-        p_val = _bootstrap_p_value(grid, score_fn, ksd_sq, n_perm=199)
+        p_val = _bootstrap_p_value(fam_grid, score_fn, ksd_sq, n_perm=199)
         p_values[family] = p_val
 
     if not ksd_by_family:

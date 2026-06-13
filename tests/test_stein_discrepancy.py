@@ -45,6 +45,17 @@ def test_ksd_skewed_quantiles(skewed_quantiles):
         assert ksd >= 0
 
 
+def test_ksd_skewed_quantiles_all_finite(skewed_quantiles):
+    """Positive-support families (lognormal/gamma/beta) must yield finite KSD.
+
+    Regression: evaluating the score function on a grid crossing the support
+    boundary previously overflowed to ``inf`` for these families.
+    """
+    result = stein_discrepancy(skewed_quantiles, n_grid=200)
+    for fam, ksd in result["ksd_by_family"].items():
+        assert np.isfinite(ksd), f"KSD for {fam} is not finite: {ksd}"
+
+
 def test_score_normal_at_mean():
     """Normal score at mean should be zero."""
     mu, sigma = 2.0, 1.5

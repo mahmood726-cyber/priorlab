@@ -1,6 +1,6 @@
 # PriorLab - Interactive Bayesian Prior Elicitation Studio
 
-World-first browser-based interactive tool for Bayesian prior elicitation using SHELF (Sheffield Elicitation Framework) methods.
+A browser-based interactive tool for Bayesian prior elicitation using SHELF (Sheffield Elicitation Framework) methods.
 
 ## Quick Start
 
@@ -52,7 +52,7 @@ The exported JSON format is compatible with:
 - Python engine validated with scipy.stats against known distributions
 - KS distance < 0.02 for quantiles generated from known distributions
 - Conjugate posterior matches analytical Normal-Normal formula
-- 25 pytest tests covering all modules
+- 145 pytest tests covering all modules
 
 ## License
 
